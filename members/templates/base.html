@@ -1,0 +1,39 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+    
+    
+<head>
+    
+   <title> {% block title %} {% endblock %}</title>
+        
+    
+    <link rel="stylesheet" href="{% static 'myglobal.css' %}">
+    <link rel="stylesheet" href="{% static 'myfirst.css' %}">
+
+
+    
+</head>
+<body>
+
+    <!-- HEADER -->
+   <div class="topnav">
+    <a href="/">HOME</a> |
+     <a href="/members">MEMBERS</a>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>© 2026 Nick Technologies</p>
+        <p>Retailers & Wholesalers of Computers & Accessories</p>
+    </footer>
+
+</body>
+</html>

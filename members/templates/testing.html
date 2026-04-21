@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>WELCOME IN QUERY TESTING PAGE</h1>
+<P>Here we gonna be learning how query works in different circumstance</P>
+
+<div>
+    
+    {% for x in members %}
+        <li style="list-style-type: none;"> {{ forloop.counter}} . {{x.firstname}} </li>
+    {% endfor %}
+        
+</div>
+    
+{% endblock content %}
+    

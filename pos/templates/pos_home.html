@@ -11,62 +11,79 @@
         <nav class="pos_navbar w-100 px-2 py-2" style="position: relative; z-index: 10; background: #fff; border-bottom: 1px solid #e0e0e0;">
             <div class="d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-center">
 
-                
-
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="?filter=all{% if search_query %}&search={{ search_query }}{% endif %}"
-                       class="btn btn-sm rounded-pill text-white flex-grow-1 flex-md-grow-0"
-                       style="background-color: {% if current_filter == 'all' %}#0d6efd{% else %}#647688{% endif %}; min-width: 110px; margin: 1px;">
-                        All <span class="badge bg-light text-dark ms-1">{{ total_products }}</span>
-                    </a>
-                    <a href="?filter=in_stock{% if search_query %}&search={{ search_query }}{% endif %}"
-                       class="btn btn-sm mx-1 rounded-pill border flex-grow-1 flex-md-grow-0
-                       {% if current_filter == 'in_stock' %}btn-success text-white{% else %}btn-light{% endif %}"
-                       style="min-width: 110px; margin: 1px;">
-                        In Stock <span class="badge bg-success ms-1">{{ in_stock }}</span>
-                    </a>
-                    <a href="?filter=low_stock{% if search_query %}&search={{ search_query }}{% endif %}"
-                       class="btn btn-sm rounded-pill border flex-grow-1 flex-md-grow-0
-                       {% if current_filter == 'low_stock' %}btn-warning text-dark{% else %}btn-light{% endif %}"
-                       style="min-width: 110px; margin: 1px;">
-                        Low Stock <span class="badge bg-warning text-dark ms-1">{{ low_stock }}</span>
-                    </a>
-                    <a href="?filter=out_of_stock{% if search_query %}&search={{ search_query }}{% endif %}"
-                       class="btn btn-sm mx-1 rounded-pill border flex-grow-1 flex-md-grow-0
-                       {% if current_filter == 'out_of_stock' %}btn-danger text-white{% else %}btn-light{% endif %}"
-                       style="min-width: 110px; margin: 1px;">
-                        Out of Stock <span class="badge bg-danger ms-1">{{ out_of_stock }}</span>
-                    </a>
-                </div>
-
-                <form method="get" class="d-flex flex-grow-1" style="max-width: 420px; margin: 1px;">
-                    <input type="hidden" name="filter" value="{{ current_filter }}">
-                    <div class="input-group input-group-sm">
-                        <input type="text" name="search" value="{{ search_query }}"
-                               class="form-control"
-                               placeholder="Search products, groups, variants..."
-                               style="border-radius: 50px 0 0 50px; background-color: #ffffff; border: 1px solid #84888d; color: black;">
-                        <button type="submit" class="btn btn-dark px-3" style="border-radius: 0 50px 50px 0; background-color: #647688; border: none;">
-                            Search
-                        </button>
-                    </div>
-                    {% if search_query %}
-                        <a href="?filter={{ current_filter }}"
-                           class="btn btn-sm mx-2 rounded-pill d-none d-md-inline-flex align-items-center" style="border: 1px solid #909296; background-color: transparent; color: #0d6efd; padding: 8px 16px; border-radius: 5px; transition: 0.2s;" onmouseover="this.style.backgroundColor='#0d6efd'; this.style.color='white';" onmouseout="this.style.backgroundColor='transparent'; this.style.color='#0d6efd';">
-                            Clear
-                        </a>
-                    {% endif %}
-                </form>
-
-            </div>
-
-            {% if search_query %}
-            <div class="mt-2 d-md-none">
-                <a href="?filter={{ current_filter }}" class="btn btn-sm btn-outline-secondary rounded-pill w-100">
-                    Clear Search
+                <!-- Filter Buttons (smaller) -->
+                <div class="d-flex flex-wrap" style="gap: 5px;">
+                <a href="?filter=all{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}"
+                class="btn btn-sm rounded-pill text-white"
+                style="background-color: {% if current_filter == 'all' %}#0d6efd{% else %}#647688{% endif %}; font-size: 0.75rem; padding: 4px 8px;">
+                    All <span class="badge bg-light text-dark ms-1" style="font-size: 0.65rem; padding: 2px 5px;">{{ total_products }}</span>
+                </a>
+                <a href="?filter=in_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}"
+                class="btn btn-sm rounded-pill border
+                {% if current_filter == 'in_stock' %}btn-success text-white{% else %}btn-light{% endif %}"
+                style="font-size: 0.75rem; padding: 4px 8px;">
+                    In Stock <span class="badge bg-success ms-1" style="font-size: 0.65rem; padding: 2px 5px;">{{ in_stock }}</span>
+                </a>
+                <a href="?filter=low_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}"
+                class="btn btn-sm rounded-pill border
+                {% if current_filter == 'low_stock' %}btn-warning text-dark{% else %}btn-light{% endif %}"
+                style="font-size: 0.75rem; padding: 4px 8px;">
+                    Low Stock <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem; padding: 2px 5px;">{{ low_stock }}</span>
+                </a>
+                <a href="?filter=out_of_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}"
+                class="btn btn-sm rounded-pill border
+                {% if current_filter == 'out_of_stock' %}btn-danger text-white{% else %}btn-light{% endif %}"
+                style="font-size: 0.75rem; padding: 4px 8px;">
+                    Out of Stock <span class="badge bg-danger ms-1" style="font-size: 0.65rem; padding: 2px 5px;">{{ out_of_stock }}</span>
                 </a>
             </div>
+
+            <!-- Search + Category Dropdown -->
+        <form method="get" class="d-flex flex-column flex-sm-row flex-grow-1 align-items-stretch align-items-sm-center gap-2" style="max-width: 520px;">
+            <input type="hidden" name="filter" value="{{ current_filter }}">
+
+            <!-- Category Dropdown -->
+            <select name="category" class="form-select form-select-sm m-1"
+                    style="border-radius: 50px; border: 1px solid #84888d; font-size: 0.8rem; padding: 4px 10px; min-width: 140px;"
+                    onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                <option value="Engine Parts" {% if category_filter == 'Engine Parts' %}selected{% endif %}>Engine Parts</option>
+                <option value="Electrical Parts" {% if category_filter == 'Electrical Parts' %}selected{% endif %}>Electrical Parts</option>
+                <option value="Mechanical Parts" {% if category_filter == 'Mechanical Parts' %}selected{% endif %}>Mechanical Parts</option>
+                <option value="Oils & Fluids" {% if category_filter == 'Oils & Fluids' %}selected{% endif %}>Oils & Fluids</option>
+                <option value="Accessories & Others" {% if category_filter == 'Accessories & Others' %}selected{% endif %}>Accessories & Others</option>
+            </select>
+
+            <!-- Search Input + Button -->
+            <div class="input-group input-group-sm flex-grow-1">
+                <input type="text" name="search" value="{{ search_query }}"
+                    class="form-control"
+                    placeholder="Search products, SKU..."
+                    style="border-radius: 50px 0 0 50px; background-color: #ffffff; border: 1px solid #84888d; color: black; font-size: 0.8rem; padding: 4px 12px;">
+                <button type="submit" class="btn btn-dark"
+                        style="border-radius: 0 50px 50px 0; background-color: #647688; border: none; min-width: 58px; font-size: 0.8rem; padding: 4px 10px;">
+                    Search
+                </button>
+            </div>
+
+            <!-- Clear Button (Desktop) -->
+            {% if search_query or category_filter %}
+                <a href="?filter={{ current_filter }}"
+                class="btn btn-sm rounded-pill d-none d-sm-inline-flex align-items-center"
+                style="border: 1px solid #909296; background-color: transparent; color: #0d6efd; padding: 4px 10px; font-size: 0.75rem; white-space: nowrap;">
+                    Clear
+                </a>
             {% endif %}
+        </form>
+
+        <!-- Clear Button (Mobile only) -->
+        {% if search_query or category_filter %}
+        <div class="mt-2 d-sm-none">
+            <a href="?filter={{ current_filter }}" class="btn btn-sm btn-outline-secondary rounded-pill w-100">
+                Clear Filters
+            </a>
+        </div>
+        {% endif %}
         </nav>
 
         <!-- ==================== MAIN LAYOUT ==================== -->
@@ -156,7 +173,7 @@
                             <ul class="pagination">
                                 {% if products.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ products.previous_page_number }}&filter={{ current_filter }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                                    <a class="page-link" href="?page={{ products.previous_page_number }}&filter={{ current_filter }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}">Previous</a>
                                 </li>
                                 {% endif %}
                                 {% for num in products.paginator.page_range %}
@@ -164,13 +181,13 @@
                                         <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                                     {% else %}
                                         <li class="page-item">
-                                            <a class="page-link" href="?page={{ num }}&filter={{ current_filter }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                                            <a class="page-link" href="?page={{ num }}&filter={{ current_filter }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}">{{ num }}</a>
                                         </li>
                                     {% endif %}
                                 {% endfor %}
                                 {% if products.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ products.next_page_number }}&filter={{ current_filter }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                                    <a class="page-link" href="?page={{ products.next_page_number }}&filter={{ current_filter }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}">Next</a>
                                 </li>
                                 {% endif %}
                             </ul>
@@ -200,6 +217,7 @@
     </div>
 </div>
 
+
 <!-- ==================== VARIANT SELECTION MODAL ==================== -->
 <div class="modal fade" id="variantModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -211,12 +229,13 @@
             <div class="modal-body">
                 <div id="variant-list" class="list-group list-group-flush"></div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+           <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="variant-cancel-btn">Cancel</button>
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- ==================== PRODUCT DETAILS MODAL ==================== -->
 <div class="modal fade" id="productDetailModal" tabindex="-1">
@@ -231,12 +250,29 @@
                     <div class="col-md-5 text-center mb-4" id="modal-image"></div>
                     <div class="col-md-7">
                         <div id="modal-details"></div>
-                        <hr>
+
+                        <!-- Sell Price + Quantity (horizontal) -->
+                        <div class="row g-3 align-items-end mt-3">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold mb-1">Sell Price</label>
+                                <div class="form-control form-control-lg bg-light fw-bold text-success" id="modal-price-display" style="cursor: default;">
+                                    â€”
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold mb-1">Quantity</label>
+                                <input type="number" id="modal-qty" class="form-control form-control-lg"
+                                       value="1" min="1">
+                            </div>
+                        </div>
+                        <small id="modal-stock-info" class="text-muted d-block mt-2"></small>
+
+                        <hr class="my-4">
                         <div class="d-flex gap-2">
-                            <button class="btn btn-secondary flex-grow-1 py-3" data-bs-dismiss="modal">
+                            <button type="button" class="btn btn-secondary flex-grow-1 py-3" id="modal-cancel-btn">
                                 Cancel
                             </button>
-                            <button class="btn btn-success flex-grow-1 py-3" id="modal-add-to-cart">
+                            <button type="button" class="btn btn-success flex-grow-1 py-3" id="modal-add-to-cart">
                                 <strong>Add to Cart</strong>
                             </button>
                         </div>
@@ -247,39 +283,6 @@
     </div>
 </div>
 
-<!-- ==================== ADD TO CART (Quantity) MODAL ==================== -->
-<div class="modal fade" id="cartModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add to Cart</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="product_id">
-                <input type="hidden" id="available_stock">
-
-                <div class="mb-3">
-                    <label class="form-label">Product</label>
-                    <input type="text" id="product_name" class="form-control bg-secondary text-dark" readonly>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Price (Tsh) - You can apply discount here</label>
-                    <input type="number" id="product_price" class="form-control" step="0.01">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Quantity</label>
-                    <input type="number" id="product_qty" class="form-control" value="1" min="1">
-                    <small id="stock-info" class="text-muted d-block mt-1"></small>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="confirmAdd">Add to Cart</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
 function getCookie(name) {
@@ -300,10 +303,13 @@ function getCookie(name) {
 document.addEventListener("DOMContentLoaded", function () {
     const csrftoken = getCookie('csrftoken');
 
-    // Modals
     const variantModal = new bootstrap.Modal(document.getElementById('variantModal'));
     const detailModal  = new bootstrap.Modal(document.getElementById('productDetailModal'));
-    const cartModal    = new bootstrap.Modal(document.getElementById('cartModal'));
+
+    // Cancel button for Variant Modal
+    document.getElementById('variant-cancel-btn').addEventListener('click', function () {
+        variantModal.hide();
+    });
 
     const cartContainer = document.getElementById('cart-items');
 
@@ -312,7 +318,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // ========== 1. CLICK ON PRODUCT CARD ==========
     document.querySelectorAll('.product-group-card').forEach(card => {
         card.addEventListener('click', function (e) {
-            // Prevent click if the button is disabled
             const btn = this.querySelector('.select-variant-btn');
             if (btn && btn.disabled) return;
 
@@ -324,7 +329,6 @@ document.addEventListener("DOMContentLoaded", function () {
             if (groupData.is_single) {
                 showProductDetails(groupData.variants[0], groupData.group_name);
             } else {
-                // Show variant selection
                 document.getElementById('variant-modal-title').textContent = groupData.group_name;
                 const list = document.getElementById('variant-list');
                 list.innerHTML = '';
@@ -377,19 +381,12 @@ document.addEventListener("DOMContentLoaded", function () {
             imageContainer.innerHTML = `<div class="bg-light text-dark d-flex justify-content-center align-items-center rounded" style="height: 320px;">No Image Available</div>`;
         }
 
+        // Only basic info (no stock here)
         document.getElementById('modal-details').innerHTML = `
             <h5 class="mb-3">Product Information</h5>
             <p><strong>Name:</strong> ${fullName}</p>
             <p><strong>Category:</strong> ${v.category || '-'}</p>
             <p><strong>Description:</strong><br>${v.description || 'No description available.'}</p>
-            <hr>
-            <div class="row">
-                <div class="col-6">
-                    <strong>Sell Price:</strong>
-                    <span class="text-success fw-bold">Tsh ${parseFloat(v.price).toLocaleString()}</span>
-                </div>
-                <div class="col-6"><strong>Stock:</strong> ${v.stock}</div>
-            </div>
             <hr>
             <p><strong>Status:</strong>
                 ${v.stock === 0 ? '<span class="badge bg-danger">Out of Stock</span>' :
@@ -398,6 +395,15 @@ document.addEventListener("DOMContentLoaded", function () {
             </p>
         `;
 
+        // Price display (fixed)
+        document.getElementById('modal-price-display').textContent = `Tsh ${parseFloat(v.price).toLocaleString()}`;
+
+        // Quantity
+        document.getElementById('modal-qty').value = 1;
+        document.getElementById('modal-qty').max = v.stock;
+        document.getElementById('modal-stock-info').innerHTML = `<strong>Available Stock: ${v.stock}</strong>`;
+
+        // Store data
         const addBtn = document.getElementById('modal-add-to-cart');
         addBtn.dataset.id = v.id;
         addBtn.dataset.name = fullName;
@@ -407,7 +413,12 @@ document.addEventListener("DOMContentLoaded", function () {
         detailModal.show();
     }
 
-    // ========== 3. FROM DETAILS → QUANTITY MODAL ==========
+    // ========== 3. CANCEL BUTTON (fixed) ==========
+    document.getElementById('modal-cancel-btn').addEventListener('click', function () {
+        detailModal.hide();
+    });
+
+    // ========== 4. ADD TO CART ==========
     document.getElementById('modal-add-to-cart').addEventListener('click', function () {
         const stock = parseInt(this.dataset.stock || 0);
         if (stock === 0) {
@@ -415,41 +426,19 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        detailModal.hide();
-        openCartModal(
-            this.dataset.id,
-            this.dataset.name,
-            this.dataset.price,
-            stock
-        );
-    });
-
-    function openCartModal(id, name, price, stock) {
-        document.getElementById('product_id').value = id;
-        document.getElementById('product_name').value = name;
-        document.getElementById('product_price').value = price;
-        document.getElementById('available_stock').value = stock;
-        document.getElementById('product_qty').value = 1;
-        document.getElementById('stock-info').innerHTML = `<strong>Available in Stock: ${stock}</strong>`;
-        cartModal.show();
-    }
-
-    // ========== 4. CONFIRM ADD TO CART ==========
-    document.getElementById('confirmAdd').addEventListener('click', function () {
-        const qty = parseInt(document.getElementById('product_qty').value);
-        const availableStock = parseInt(document.getElementById('available_stock').value);
+        const qty = parseInt(document.getElementById('modal-qty').value);
 
         if (isNaN(qty) || qty < 1) {
             alert("Quantity must be at least 1");
             return;
         }
-        if (qty > availableStock) {
-            alert(`❌ Insufficient Stock!\nAvailable: ${availableStock}\nRequested: ${qty}`);
+        if (qty > stock) {
+            alert(`Insufficient Stock!\nAvailable: ${stock}\nRequested: ${qty}`);
             return;
         }
 
-        const productId = document.getElementById('product_id').value;
-        const price = document.getElementById('product_price').value;
+        const productId = this.dataset.id;
+        const price = this.dataset.price;
 
         fetch(`/pos/add-to-cart/${productId}/`, {
             method: "POST",
@@ -461,7 +450,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .then(res => res.json())
         .then(data => {
-            cartModal.hide();
+            detailModal.hide();
             if (data.status === 'success') {
                 renderCart(data.cart);
             } else {
@@ -483,7 +472,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // ========== 6. COMPLETE SALE ==========
+   // ========== 6. COMPLETE SALE ==========
     document.getElementById('complete-sale').addEventListener('click', function () {
         if (confirm("Complete this sale and save to records?")) {
             fetch('/pos/complete-sale/', {
@@ -493,8 +482,15 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert(`✅ Sale Completed Successfully!\nSale ID: #${data.sale_id}\nTotal: Tsh ${data.total_amount.toLocaleString()}`);
+                    alert(`Sale Completed Successfully!\nSale ID: #${data.sale_id}\nTotal: Tsh ${data.total_amount.toLocaleString()}`);
+
+                    // Clear cart visually
                     renderCart({});
+
+                    // Reload the page so product stock is updated
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 800);   // small delay so user can see the success message
                 } else {
                     alert(data.message);
                 }
@@ -534,7 +530,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <strong>${item.name}</strong><br>
-                                <small class="text-muted">Tsh ${parseFloat(item.price).toLocaleString()} × ${item.qty}</small>
+                                <small class="text-muted">Tsh ${parseFloat(item.price).toLocaleString()} Ã— ${item.qty}</small>
                             </div>
                             <div class="text-end">
                                 <strong class="text-success">Tsh ${subtotal.toLocaleString()}</strong><br>
@@ -565,17 +561,6 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => renderCart(data.cart || {}));
         }
-    });
-
-    // ========== 9. MAKE SURE CANCEL / CLOSE BUTTONS WORK ==========
-    // Bootstrap already handles data-bs-dismiss="modal"
-    // But we force close just in case
-    document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
-        btn.addEventListener('click', function () {
-            variantModal.hide();
-            detailModal.hide();
-            cartModal.hide();
-        });
     });
 });
 </script>

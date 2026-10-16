@@ -9,117 +9,80 @@ from decimal import Decimal
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = [
+            'store',
+            'category',
+            'product_name',
+            'sku',
+            'product_group',
+            'variant',
+            'buy_price',
+            'sell_price',
+            'wholesale_price',
+            'initial_stock',
+            'unit_type',
+            'low_stock_alert_quantity',
+            'product_image',          # main/legacy image (optional)
+            'description',
+        ]
 
         widgets = {
             'store': forms.Select(attrs={
                 'class': 'form-select',
                 'style': 'color: black; background-color: rgb(239, 243, 243);',
             }),
-
             'product_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g. HP Laptop, Coca Cola 500ml',
+                'placeholder': 'e.g. Brake Pads, Oil Filters, Fan Belts',
                 'style': 'color: black; background-color: rgb(239, 243, 243); border-color: rgb(208, 209, 212);',
             }),
-
+            'sku': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. SKU-00123',
+                'style': 'color: black; background-color: rgb(239, 243, 243);',
+            }),
             'category': forms.Select(attrs={'class': 'form-select'}),
-            # In ProductForm Meta.fields or widgets
-
             'product_group': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g. HDMI Cable, Dell XPS 15',
+                'placeholder': 'e.g. Brake Pads, Oil Filters, Fan Belts',
                 'style': 'color: black; background-color: rgb(239, 243, 243);',
             }),
             'variant': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g. 1.5m, 2m, 16GB/512GB, Gen 12',
+                'placeholder': 'e.g. Front Brake Pads, Rear Brake Pads, Spin-On Oil Filters',
                 'style': 'color: black; background-color: rgb(239, 243, 243);',
             }),
-
             'buy_price': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'style': 'color: black; background-color: rgb(239, 243, 243); border-color: rgb(208, 209, 212);',
-                'value': 0,
+                'step': '0.01',
             }),
-
-            # These are now calculated automatically → hide them
-            'sell_price': forms.HiddenInput(),
-            'wholesale_price': forms.HiddenInput(),
-
+            'sell_price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'style': 'color: black; background-color: rgb(239, 243, 243); border-color: rgb(208, 209, 212);',
+                'step': '0.01',
+            }),
+            'wholesale_price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'style': 'color: black; background-color: rgb(239, 243, 243); border-color: rgb(208, 209, 212);',
+                'step': '0.01',
+            }),
             'initial_stock': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'style': 'color: black; background-color: rgb(239, 243, 243); border-color: rgb(208, 209, 212);',
-                'value': 0,
-            }),
-            'reorder_level': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'style': 'color: black; background-color: rgb(239, 243, 243); border-color: rgb(208, 209, 212);',
-                'value': 5,
             }),
             'unit_type': forms.Select(attrs={'class': 'form-select'}),
-
-            'tax_type': forms.Select(attrs={'class': 'form-select', 'id': 'tax_type'}),
-            'tax_amount': forms.NumberInput(attrs={
+            'low_stock_alert_quantity': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'style': 'color: white;',
-                'id': 'tax_amount',
+                'style': 'color: black; background-color: rgb(239, 243, 243);',
             }),
-
-            'discount_type': forms.Select(attrs={'class': 'form-select', 'id': 'discount_type'}),
-            'discount_value': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'style': 'color: white;',
-                'id': 'discount_value',
-            }),
-
             'product_image': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
-                'style': 'color: white;',
             }),
-
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'style': 'color: white;',
-                'placeholder': 'e.g. RAM 8GB STORAGE 256SSD, cable M5',
-            }),
-
-            'has_manufacturer': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-                'id': 'has_manufacturer',
-            }),
-            'manufacturer': forms.TextInput(attrs={
-                'class': 'form-control',
-                'style': 'color: white;',
-                'id': 'manufacturer',
-            }),
-
-            'has_warranty': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-                'id': 'has_warranty',
-            }),
-            'warranty_details': forms.TextInput(attrs={
-                'class': 'form-control',
-                'style': 'color: white;',
-                'id': 'warranty_details',
-            }),
-
-            'has_expiry_date': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-                'id': 'has_expiry_date',
-            }),
-            'expiry_date': forms.DateInput(attrs={
-                'class': 'form-control',
-                'type': 'date',
-                'style': 'color: white;',
-                'id': 'expiry_date',
-            }),
-
-            'low_stock_alert_quantity': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'style': 'color: white;',
-                'value': 2,
+                'placeholder': 'Short description...',
             }),
         }
 
@@ -131,11 +94,9 @@ class ProductForm(forms.ModelForm):
         is_update = bool(self.instance and self.instance.pk)
 
         if is_update:
-            # ========== UPDATE ==========
             if 'store' in self.fields:
                 del self.fields['store']
         else:
-            # ========== CREATE ==========
             if not is_admin and self.user and self.user.store:
                 self.fields['store'].widget = forms.HiddenInput()
                 self.fields['store'].required = False
@@ -147,77 +108,8 @@ class ProductForm(forms.ModelForm):
                 self.fields['store'].required = True
                 self.fields['store'].queryset = Store.objects.filter(is_active=True).order_by('name')
 
-        # sell_price & wholesale_price are calculated → not required from user
-        self.fields['sell_price'].required = False
+        # All prices are now manual
         self.fields['wholesale_price'].required = False
-
-        important_fields = ['product_name', 'buy_price', 'initial_stock', 'reorder_level']
-        for field_name in important_fields:
-            if field_name in self.fields:
-                self.fields[field_name].widget.attrs.update({'class': 'form-control'})
-
-    # ------------------------------------------------------------------
-    # PRICE CALCULATION LOGIC
-    # ------------------------------------------------------------------
-    def calculate_prices(self, buy_price, category):
-        """
-        Returns (sell_price, wholesale_price) based on the business rules.
-        category is a string: 'Laptop', 'Desktop', or 'Accessories'
-        """
-        if buy_price is None or buy_price <= 0:
-            return Decimal('0'), Decimal('0')
-
-        buy = Decimal(str(buy_price))
-        category_name = (category or "").lower().strip()
-
-        # ---------- ACCESSORY ----------
-        if "accessor" in category_name:
-            sell = buy + (buy * Decimal('0.35'))          # +35%
-            wholesale = buy + (buy * Decimal('0.20'))     # +20%
-
-        # ---------- LAPTOP / DESKTOP ----------
-        elif "laptop" in category_name or "desktop" in category_name:
-            if buy <= 399999:
-                sell = buy + Decimal('50000')
-            elif buy <= 499999:
-                sell = buy + Decimal('70000')
-            elif buy <= 699999:
-                sell = buy + Decimal('90000')
-            elif buy <= 999999:
-                sell = buy + Decimal('100000')
-            elif buy <= 1499999:
-                sell = buy + Decimal('150000')
-            elif buy <= 1999999:
-                sell = buy + Decimal('200000')
-            elif buy <= 2499999:
-                sell = buy + Decimal('250000')
-            elif buy <= 2999999:
-                sell = buy + Decimal('300000')
-            else:
-                # above 2,999,999 → +25%
-                sell = buy + (buy * Decimal('0.25'))
-
-            margin = sell - buy
-            wholesale = buy + (margin * Decimal('0.65'))
-
-        # ---------- OTHER / fallback ----------
-        else:
-            sell = buy + (buy * Decimal('0.25'))
-            wholesale = buy + (buy * Decimal('0.15'))
-
-        # Round to nearest whole number (TZS)
-        sell = sell.quantize(Decimal('1'))
-        wholesale = wholesale.quantize(Decimal('1'))
-
-        return sell, wholesale
-
-    # ------------------------------------------------------------------
-    # VALIDATIONS
-    # ------------------------------------------------------------------
-    def clean_store(self):
-        if self.user and not getattr(self.user, 'can_see_all', False) and self.user.store:
-            return self.user.store
-        return self.cleaned_data.get('store')
 
     def clean_product_name(self):
         name = self.cleaned_data.get("product_name")
@@ -231,6 +123,12 @@ class ProductForm(forms.ModelForm):
             raise ValidationError("Buy price must be greater than 0.")
         return value
 
+    def clean_sell_price(self):
+        value = self.cleaned_data.get("sell_price")
+        if value is not None and value <= 0:
+            raise ValidationError("Sell price must be greater than 0.")
+        return value
+
     def clean_initial_stock(self):
         value = self.cleaned_data.get("initial_stock")
         if value is not None and value < 1:
@@ -239,20 +137,11 @@ class ProductForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-
         buy = cleaned_data.get("buy_price")
-        category = cleaned_data.get("category")   # this is a string, e.g. "Laptop"
+        sell = cleaned_data.get("sell_price")
 
-        if buy is not None and category:
-            sell, wholesale = self.calculate_prices(buy, category)
-            cleaned_data['sell_price'] = sell
-            cleaned_data['wholesale_price'] = wholesale
-
-            if sell <= buy:
-                self.add_error(
-                    'buy_price',
-                    "Calculated sell price is not greater than buy price. Check category or buy price."
-                )
+        if buy is not None and sell is not None and sell <= buy:
+            self.add_error('sell_price', "Sell price must be greater than buy price.")
 
         return cleaned_data
 

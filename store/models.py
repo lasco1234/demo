@@ -48,67 +48,59 @@ class Stock(models.Model):
 
     def __str__(self):
         return f"{self.product.product_name} @ {self.store.name} ({self.quantity})"
-    
+
 
 # ===================== PRODUCT =====================
 class Product(models.Model):
     CATEGORY_CHOICES = [
-        ('Laptop', 'Laptop'),
-        ('Desktop', 'Desktop'),
-        ('Accessories', 'Accessories'),
+        ('Engine Parts', 'Engine Parts'),
+        ('Electrical Parts', 'Electrical Parts'),
+        ('Mechanical Parts', 'Mechanical Parts'),
+        ('Oils & Fluids', 'Oils & Fluids'),
+        ('Accessories & Others', 'Accessories & Others'),
     ]
+
     UNIT_CHOICES = [
         ('Pieces', 'Pieces'),
         ('Box', 'Box'),
         ('Carton', 'Carton'),
-    ]
-    DISCOUNT_CHOICES = [
-        ('None', 'None'),
-        ('Percentage', 'Percentage'),
-        ('Fixed', 'Fixed'),
-    ]
-    TAX_CHOICES = [
-        ('None', 'None'),
-        ('VAT', 'VAT'),
-        ('GST', 'GST'),
+        ('Litre', 'Litre'),
+        ('Set', 'Set'),
     ]
 
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='products')
 
     product_name = models.CharField(max_length=100)
+    sku = models.CharField(max_length=50, blank=True, null=True, help_text="SKU / Product Code")
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+
     buy_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     sell_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     wholesale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
     initial_stock = models.IntegerField(default=0, validators=[MinValueValidator(0)])
-    
-    reorder_level = models.IntegerField(default=5)
     unit_type = models.CharField(max_length=20, choices=UNIT_CHOICES)
-    tax_type = models.CharField(max_length=20, choices=TAX_CHOICES, default='None')
-    tax_amount = models.DecimalField(max_digits=5, decimal_places=2, default=0, blank=True, null=True)
-    discount_type = models.CharField(max_length=20, choices=DISCOUNT_CHOICES, default='None')
-    discount_value = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True, null=True)
-    
-    has_warranty = models.BooleanField(default=False)
-    warranty_details = models.CharField(max_length=255, blank=True, null=True)
-    has_manufacturer = models.BooleanField(default=False)
-    manufacturer = models.CharField(max_length=100, blank=True, null=True)
-    has_expiry_date = models.BooleanField(default=False)
-    expiry_date = models.DateField(blank=True, null=True)
     low_stock_alert_quantity = models.IntegerField(default=2, validators=[MinValueValidator(0)])
-    
+
     product_image = models.ImageField(upload_to='products/', null=True, blank=True)
     description = models.TextField(blank=True, null=True)
-    product_group = models.CharField(max_length=120, blank=True, null=True, help_text="e.g. HDMI Cable, Dell XPS 15, HP EliteBook")
-    variant = models.CharField(max_length=100, blank=True, null=True, help_text="e.g. 1.5m, 2m, 16GB/512GB, Gen 12 i7")
+
+    product_group = models.CharField(
+        max_length=120, blank=True, null=True,
+        help_text="e.g. Brake Pads, Oil Filter, Spark Plug"
+    )
+    variant = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text="e.g. Front, Rear, 5W-30, Denso, Bosch"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-    objects = ProductManager()        # ← Main filtered manager
-    all_objects = models.Manager()    # For admin to see everything (including deleted)
+    objects = ProductManager()
+    all_objects = models.Manager()
 
     class Meta:
         unique_together = ('store', 'product_name', 'variant')
@@ -118,13 +110,13 @@ class Product(models.Model):
         return f"{self.product_name} ({self.store.name})"
 
     def clean(self):
-        # Normalize empty strings to None
         if self.product_group == '':
             self.product_group = None
         if self.variant == '':
             self.variant = None
+        if self.sku == '':
+            self.sku = None
 
-        # Only enforce minimum stock when creating
         if self._state.adding or self.pk is None:
             if self.initial_stock < 1:
                 raise ValidationError({'initial_stock': 'Initial stock must be at least 1 when adding new product.'})
@@ -142,8 +134,7 @@ class Product(models.Model):
             if self.sell_price <= self.buy_price:
                 raise ValidationError({'sell_price': 'Sell price must be greater than buy price.'})
 
-        # ========== VALIDATION FOR UNIQUENESS ==========
-        # Case 1: No group and no variant → product_name must be unique
+        # Uniqueness validation
         if not self.product_group and not self.variant:
             existing = Product.objects.filter(
                 store=self.store,
@@ -153,13 +144,10 @@ class Product(models.Model):
             )
             if self.pk:
                 existing = existing.exclude(pk=self.pk)
-
             if existing.exists():
                 raise ValidationError({
                     'product_name': 'A product with this name already exists. If this is a variant, please fill Product Group and Variant.'
                 })
-
-        # Case 2: Both group and variant are filled → combination must be unique
         elif self.product_group and self.variant:
             existing = Product.objects.filter(
                 store=self.store,
@@ -168,31 +156,22 @@ class Product(models.Model):
             )
             if self.pk:
                 existing = existing.exclude(pk=self.pk)
-
             if existing.exists():
                 raise ValidationError({
                     'variant': f'This variant ({self.variant}) already exists for "{self.product_group}".'
                 })
-
-        # Case 3: Only one of them is filled → not allowed
         else:
-            raise ValidationError(
-                'Please fill both Product Group and Variant, or leave both empty.'
-            )
-
+            raise ValidationError('Please fill both Product Group and Variant, or leave both empty.')
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
-
         if kwargs.pop('skip_validation', False):
             super().save(*args, **kwargs)
         else:
             self.full_clean()
             super().save(*args, **kwargs)
 
-        # Create Stock record only when product is newly created
         if is_new:
-            from .models import Stock   # avoid circular import if needed
             Stock.objects.get_or_create(
                 product=self,
                 store=self.store,
@@ -204,6 +183,20 @@ class Product(models.Model):
         if self.product_group and self.variant:
             return f"{self.product_group} ({self.variant})"
         return self.product_name
+
+
+# ===================== PRODUCT IMAGES (must be OUTSIDE Product class) =====================
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='products/')
+    is_primary = models.BooleanField(default=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_primary', 'uploaded_at']
+
+    def __str__(self):
+        return f"Image for {self.product.product_name}"
 
 # ===================== PRODUCT TRANSFER =====================
 class ProductTransfer(models.Model):
@@ -235,8 +228,10 @@ class Sale(models.Model):
     sale_date = models.DateTimeField(default=timezone.now)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
     items_count = models.PositiveIntegerField(default=0)
+    sold_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # ← ADD THIS
     created_at = models.DateTimeField(auto_now_add=True)
     objects = StoreAwareManager()
+    sold_by_name = models.CharField(max_length=150, blank=True, null=True)
 
     class Meta:
         ordering = ['-sale_date']
@@ -319,4 +314,4 @@ class StockAdjustment(models.Model):
             if not self.from_store:
                 raise ValidationError("from_store is required for decrease.")
 
-    
+

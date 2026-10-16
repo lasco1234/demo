@@ -1,5 +1,19 @@
 {% extends 'sales_layout.html' %}
 {% load humanize %}
+{% load feature_tags %}
+
+{% is_feature_enabled 'sales_profit_info' as can_see_profit %}
+
+<!-- Temporary debug -->
+<p style="color: red; background: yellow; padding: 10px;">
+    DEBUG → can_see_profit = {{ can_see_profit }} |
+    is_admin = {{ user.is_admin }} |
+    role = {{ user.role }}
+</p>
+
+{% if user.is_admin or can_see_profit %}
+    <!-- The three profit cards here -->
+{% endif %}
 
 {% block title %}
     Sales History
@@ -73,6 +87,8 @@
     <!-- ========== KPI CARDS ========== -->
     <div class="card bg-light text-dark my-4 shadow-sm" style="border-radius: 15px;">
         <div class="card-body row">
+
+            <!-- Total Sales (always visible) -->
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="customer_items row">
                     <div class="customer_items_icons ml-3" style="background-color: rgb(163, 160, 158);">
@@ -84,6 +100,11 @@
                     </div>
                 </div>
             </div>
+
+            {% is_feature_enabled 'sales_profit_info' as can_see_profit %}
+            {% if user.is_admin or can_see_profit %}
+
+            <!-- Total Buy Price -->
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="customer_items row">
                     <div class="customer_items_icons ml-3" style="background-color: rgb(163, 160, 158);">
@@ -95,6 +116,8 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Gross Profit -->
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="customer_items row">
                     <div class="customer_items_icons ml-3" style="background-color: rgb(163, 160, 158);">
@@ -106,6 +129,8 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Net Profit -->
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="customer_items row">
                     <div class="customer_items_icons ml-3" style="background-color: rgb(163, 160, 158);">
@@ -117,6 +142,10 @@
                     </div>
                 </div>
             </div>
+
+            {% endif %}
+
+            <!-- Number of Sales (always visible) -->
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="customer_items row">
                     <div class="customer_items_icons ml-3" style="background-color: rgb(163, 160, 158);">
@@ -128,6 +157,8 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Products Sold (always visible) -->
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="customer_items row">
                     <div class="customer_items_icons ml-3" style="background-color: rgb(163, 160, 158);">
@@ -139,6 +170,8 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Expenses (always visible) -->
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="customer_items row">
                     <div class="customer_items_icons ml-3" style="background-color: rgb(163, 160, 158);">
@@ -150,6 +183,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 

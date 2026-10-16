@@ -1,5 +1,5 @@
 """
-URL configuration for hillpark project.
+URL configuration for singano ^ isihaka project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/6.0/topics/http/urls/
@@ -19,7 +19,7 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 
-admin.site.site_header = "🛒 HillPark POS"
+admin.site.site_header = "🛒 SINGANO AUTOMOBILE POS"
 admin.site.site_title = "POS Control Panel"
 admin.site.index_title = "Inventory & Sales Dashboard"
 
@@ -29,16 +29,14 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('store/', include('store.urls')),
     path('pos/', include('pos.urls')),
-    path('sales', include('sales.urls')),
+    path('sales/', include('sales.urls')),
     path('select2/', include('django_select2.urls')),
     path('customer', include('customer.urls')),
     path('reports/', include('reports.urls')),
-    path('orders/', include('orders.urls')),
     path('invoices/', include('invoices.urls')),
     path('notifications/', include('notifications.urls')),
     path('settings/', include('settings.urls')),
     path('expenses/', include('expenses.urls')),
-    path('installments/', include('installment.urls')),
     path('backup/', include('backup.urls')),
 ]
 

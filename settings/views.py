@@ -5,6 +5,8 @@ from django.contrib import messages
 from store.models import Store
 from .models import SystemSettings, StoreSettings
 from .forms import SystemSettingsForm, StoreSettingsForm
+from django.core.exceptions import PermissionDenied
+from core.models import FeatureAccess
 
 
 def _is_admin(user):
@@ -13,6 +15,11 @@ def _is_admin(user):
 
 @login_required
 def settings_home(request):
+    if not request.user.is_admin:
+                feature = FeatureAccess.objects.filter(key='store_module').first()
+                if not feature or not feature.is_enabled_for_employer:
+                    raise PermissionDenied("You don't have access to the Store module.")
+
     is_admin = _is_admin(request.user)
     store_settings = None
     stores = []

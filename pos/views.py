@@ -5,10 +5,18 @@ import json
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from collections import defaultdict
+from django.core.exceptions import PermissionDenied
+from core.models import FeatureAccess
 
 
 @login_required
 def pos_home(request):
+    if not request.user.is_admin:
+        feature = FeatureAccess.objects.filter(key='pos_module').first()
+        if not feature or not feature.is_enabled_for_employer:
+            raise PermissionDenied("You don't have access to the Store module.")
+
     """POS Home - Groups products by product_group for easy variant selection"""
     if request.user.can_see_all:
         product_list = Product.objects.all().select_related('store')
@@ -20,11 +28,16 @@ def pos_home(request):
         stock = Stock.objects.filter(product=product, store=product.store).first()
         product.current_stock = stock.quantity if stock else 0
 
-    # ========== STATS (full list) ==========
+    # ========== STATS (full list - before filters) ==========
     total_products = product_list.count()
     in_stock = sum(1 for p in product_list if p.current_stock > 0)
     low_stock = sum(1 for p in product_list if 0 < p.current_stock <= 5)
     out_of_stock = sum(1 for p in product_list if p.current_stock == 0)
+
+    # ========== CATEGORY FILTER ==========
+    category_filter = request.GET.get('category', '').strip()
+    if category_filter:
+        product_list = [p for p in product_list if p.category == category_filter]
 
     # ========== SEARCH ==========
     search_query = request.GET.get('search', '').strip()
@@ -37,7 +50,7 @@ def pos_home(request):
             or q in (p.variant or '').lower()
             or q in (p.category or '').lower()
             or q in (p.description or '').lower()
-            or q in (p.manufacturer or '').lower()
+            or q in (p.sku or '').lower()
         ]
 
     # ========== STOCK FILTER ==========
@@ -51,7 +64,6 @@ def pos_home(request):
         product_list = [p for p in product_list if p.current_stock == 0]
 
     # ========== GROUP PRODUCTS ==========
-    # Key = product_group (or product_name if no group)
     from collections import defaultdict
     groups = defaultdict(list)
 
@@ -59,17 +71,13 @@ def pos_home(request):
         key = p.product_group.strip() if p.product_group else p.product_name
         groups[key].append(p)
 
-    # Convert to list of groups for template
     grouped_products = []
     for group_name, variants in groups.items():
-        # Sort variants by name
         variants = sorted(variants, key=lambda x: (x.variant or x.product_name).lower())
 
-        # Calculate group stock status
         total_stock = sum(v.current_stock for v in variants)
         has_stock = any(v.current_stock > 0 for v in variants)
 
-        # Use the first product's image as group image (or the one that has image)
         group_image = None
         for v in variants:
             if v.product_image:
@@ -84,19 +92,18 @@ def pos_home(request):
             'has_stock': has_stock,
             'image': group_image,
             'category': variants[0].category if variants else '',
-            'is_single': len(variants) == 1,   # True if only one product (no real variants)
+            'is_single': len(variants) == 1,
         })
 
-    # Sort groups alphabetically
     grouped_products.sort(key=lambda x: x['group_name'].lower())
 
-    # Pagination on groups
+    # Pagination
     paginator = Paginator(grouped_products, 12)
     page_number = request.GET.get('page')
     products = paginator.get_page(page_number)
 
     context = {
-        'products': products,               # now these are groups
+        'products': products,
         'total_products': total_products,
         'in_stock': in_stock,
         'low_stock': low_stock,
@@ -104,6 +111,7 @@ def pos_home(request):
         'user_store': request.user.store,
         'search_query': search_query,
         'current_filter': stock_filter,
+        'category_filter': category_filter,   # ← important
     }
     return render(request, 'pos_home.html', context)
 
@@ -118,7 +126,16 @@ def add_to_cart(request, product_id):
         price = float(data.get('price'))
         qty = int(data.get('qty', 1))
 
+        if qty < 1:
+            return JsonResponse({'status': 'error', 'message': 'Quantity must be at least 1'}, status=400)
+
         product = Product.objects.for_user(request.user).get(id=product_id)
+
+        # Better display name
+        if product.product_group and product.variant:
+            display_name = f"{product.product_group} ({product.variant})"
+        else:
+            display_name = product.product_name
 
         cart = request.session.get('cart', {})
         product_id_str = str(product_id)
@@ -128,7 +145,7 @@ def add_to_cart(request, product_id):
         else:
             cart[product_id_str] = {
                 'id': product.id,
-                'name': product.product_name,
+                'name': display_name,
                 'price': price,
                 'qty': qty,
                 'image': product.product_image.url if product.product_image else None,
@@ -142,7 +159,7 @@ def add_to_cart(request, product_id):
     except Product.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Product not found or not accessible'}, status=404)
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': 'Server error'}, status=500)
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
 @login_required
@@ -211,7 +228,9 @@ def complete_sale(request):
             sale = Sale.objects.create(
                 store=store,
                 total_amount=0,
-                items_count=sum(int(item['qty']) for item in cart.values())
+                items_count=sum(int(item['qty']) for item in cart.values()),
+                sold_by=request.user,
+                sold_by_name=request.user.get_full_name() or request.user.username,
             )
 
             for item in cart.values():
@@ -232,11 +251,17 @@ def complete_sale(request):
                 subtotal = sold_price * qty_sold
                 total_amount += subtotal
 
+                # Better name for the sale record
+                if product.product_group and product.variant:
+                    item_name = f"{product.product_group} ({product.variant})"
+                else:
+                    item_name = product.product_name
+
                 # Create sale item
                 SaleItem.objects.create(
                     sale=sale,
                     product=product,
-                    product_name=product.product_name,
+                    product_name=item_name,
                     category=product.category,
                     unit_type=product.unit_type,
                     sold_price=sold_price,

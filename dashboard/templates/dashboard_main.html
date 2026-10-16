@@ -7,26 +7,44 @@
 {% block content %}
 <div class="content-wrapper">
 
-  <!-- Page Header + Period Filter -->
-  <div class="page-header d-flex flex-wrap justify-content-between align-items-center mb-4">
-    <div>
-      <h3 class="page-title mb-1 responsive-title" style="color: #647688;">Dashboard</h3>
-      <p class="text-muted mb-0">
+  <!-- ========== PAGE HEADER ========== -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div class="mb-3 mb-md-0">
+      <h3 class="page-title mb-1" style="font-size: 1.5rem; font-weight: 600; color: #647688;">
+        Dashboard
+      </h3>
+      <p class="text-muted mb-0" style="font-size: 0.875rem;">
         {% if current_store %}
           Store: <strong>{{ current_store.name }}</strong>
         {% else %}
           All Stores
         {% endif %}
-        · Showing <strong>{{ period_label }}</strong>
+        Â· Showing <strong>{{ period_label }}</strong>
       </p>
     </div>
 
-    <div class="btn-group mt-2 mt-md-0">
-      <a href="?period=all" class="btn btn-sm {% if period == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">All Time</a>
-      <a href="?period=this_year" class="btn btn-sm {% if period == 'this_year' %}btn-primary{% else %}btn-outline-primary{% endif %}">This Year</a>
-      <a href="?period=this_month" class="btn btn-sm {% if period == 'this_month' %}btn-primary{% else %}btn-outline-primary{% endif %}">This Month</a>
-      <a href="?period=30d" class="btn btn-sm {% if period == '30d' %}btn-primary{% else %}btn-outline-primary{% endif %}">30 Days</a>
-      <a href="?period=7d" class="btn btn-sm {% if period == '7d' %}btn-primary{% else %}btn-outline-primary{% endif %}">7 Days</a>
+    <!-- Period Filter - Responsive -->
+    <div class="d-flex flex-wrap gap-1">
+      <a href="?period=all"
+         class="btn btn-sm px-3 {% if period == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        All Time
+      </a>
+      <a href="?period=this_year"
+         class="btn btn-sm px-3 {% if period == 'this_year' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        This Year
+      </a>
+      <a href="?period=this_month"
+         class="btn btn-sm px-3 {% if period == 'this_month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        This Month
+      </a>
+      <a href="?period=30d"
+         class="btn btn-sm px-3 {% if period == '30d' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        30 Days
+      </a>
+      <a href="?period=7d"
+         class="btn btn-sm px-3 {% if period == '7d' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        7 Days
+      </a>
     </div>
   </div>
 
@@ -34,202 +52,254 @@
     <div class="alert alert-danger">{{ error }}</div>
   {% else %}
 
-  <!-- ========== KPI CARDS ========== -->
+  <!-- ========== PRIMARY KPI CARDS ========== -->
   <div class="row">
-    <div class="col-xl-3 col-md-6 grid-margin stretch-card">
-      <div class="card text-white" style="background-color: rgb(39, 55, 73);">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <p class="mb-1 opacity-75" style="font-size: 14px;">Total Sales</p>
-              <h3 class="mb-0" style="font-size: 20px;">Tsh. {{ total_sales|floatformat:0|intcomma }}</h3>
-              <small class="opacity-75">{{ total_sales_count }} transactions</small>
-            </div>
-            <i class="mdi mdi-cash-multiple icon-lg opacity-50"></i>
+    <!-- Total Sales -->
+    <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
+      <div class="card text-white border-0" style="background: linear-gradient(135deg, #273749 0%, #1e2a38 100%);">
+        <div class="card-body p-3 p-md-4">
+          <!-- Title + Icon on same line -->
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="mb-0 opacity-75 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.4px;">
+              Total Sales
+            </p>
+            <i class="mdi mdi-cash-multiple opacity-50" style="font-size: 1.5rem;"></i>
           </div>
+
+          <!-- Big number (stays alone and shrinks) -->
+          <h3
+               style="font-size: clamp(10px, 1.2vw, 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin: 0;">
+            Tsh. {{ total_sales|floatformat:0|intcomma }}
+          </h3>
+
+          <small class="opacity-75 d-block" style="font-size: 0.75rem;">
+            {{ total_sales_count }} transactions
+          </small>
         </div>
       </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 grid-margin stretch-card">
-      <div class="card text-white" style="background-color: rgb(26, 73, 44);">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <p class="mb-1 opacity-75" style="font-size: 14px;">Total Profit</p>
-              <h3 class="mb-0" style="font-size: 20px;">Tsh. {{ total_profit|floatformat:0|intcomma }}</h3>
-              <small class="opacity-75">{{ total_items_sold }} items sold</small>
-            </div>
-            <i class="mdi mdi-trending-up icon-lg opacity-50"></i>
+    <!-- Total Profit -->
+    <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
+      <div class="card text-white border-0" style="background: linear-gradient(135deg, #1a492c 0%, #143a23 100%);">
+        <div class="card-body p-3 p-md-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="mb-0 opacity-75 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.4px;">
+              Total Profit
+            </p>
+            <i class="mdi mdi-trending-up opacity-50" style="font-size: 1.5rem;"></i>
           </div>
+
+          <h3
+               style="font-size: clamp(10px, 1.2vw, 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin: 0;">
+            Tsh. {{ total_profit|floatformat:0|intcomma }}
+          </h3>
+
+          <small class="opacity-75 d-block" style="font-size: 0.75rem;">
+            {{ total_items_sold }} items sold
+          </small>
         </div>
       </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 grid-margin stretch-card">
-      <div class="card text-white" style="background-color: rgb(92, 92, 150);">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <p class="mb-1 opacity-75" style="font-size: 14px;">Expenses</p>
-              <h3 class="mb-0" style="font-size: 20px;">Tsh. {{ total_expenses|floatformat:2|intcomma }}</h3>
-              <small class="opacity-75">Total expenses</small>
-            </div>
-            <i class="mdi mdi-cash icon-lg opacity-50"></i>
+    <!-- Expenses -->
+    <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
+      <div class="card text-white border-0" style="background: linear-gradient(135deg, #5c5c96 0%, #4a4a7a 100%);">
+        <div class="card-body p-3 p-md-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="mb-0 opacity-75 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.4px;">
+              Expenses
+            </p>
+            <i class="mdi mdi-cash opacity-50" style="font-size: 1.5rem;"></i>
           </div>
+
+          <h3
+               style="font-size: clamp(10px, 1.2vw, 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin: 0;">
+            Tsh. {{ total_expenses|floatformat:0|intcomma }}
+          </h3>
+
+          <small class="opacity-75 d-block" style="font-size: 0.75rem;">
+            Total expenses
+          </small>
         </div>
       </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 grid-margin stretch-card">
-      <div class="card text-white" style="background-color: rgb(146, 122, 78);">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <p class="mb-1 opacity-75" style="font-size: 14px;">Stock Value (Cost)</p>
-              <h3 class="mb-0" style="font-size: 20px;">Tsh. {{ stock_value|floatformat:0|intcomma }}</h3>
-              <small class="opacity-75">{{ total_products }} products</small>
-            </div>
-            <i class="mdi mdi-package-variant icon-lg opacity-50"></i>
+    <!-- Stock Value -->
+    <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
+      <div class="card text-white border-0" style="background: linear-gradient(135deg, #927a4e 0%, #7a6640 100%);">
+        <div class="card-body p-3 p-md-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="mb-0 opacity-75 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.4px;">
+              Stock Value
+            </p>
+            <i class="mdi mdi-package-variant opacity-50" style="font-size: 1.5rem;"></i>
           </div>
+
+          <h3
+              style="font-size: clamp(10px, 1.2vw, 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin: 0;">
+            Tsh. {{ stock_value|floatformat:0|intcomma }}
+          </h3>
+
+          <small class="opacity-75 d-block" style="font-size: 0.75rem;">
+            {{ total_products }} products
+          </small>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Second KPI row -->
+  <!-- ========== SECONDARY KPI CARDS ========== -->
   <div class="row">
-    <div class="col-md-3 grid-margin stretch-card">
-      <div class="card">
-        <div class="card-body text-center py-4">
-          <h4 class="mb-1 text-white">{{ low_stock_count }}</h4>
-          <p class="mb-0 text-muted">Low Stock</p>
+    <div class="col-6 col-md-3 grid-margin stretch-card">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-3 py-md-4">
+          <h4 class="mb-1 font-weight-bold text-danger" style="font-size: 1.5rem;">
+            {{ low_stock_count }}
+          </h4>
+          <p class="mb-0 text-muted" style="font-size: 0.8rem;">Low Stock</p>
         </div>
       </div>
     </div>
-    <div class="col-md-3 grid-margin stretch-card">
-      <div class="card">
-        <div class="card-body text-center py-4">
-          <h4 class="mb-1 text-white">{{ out_of_stock_count }}</h4>
-          <p class="mb-0 text-muted">Out of Stock</p>
+
+    <div class="col-6 col-md-3 grid-margin stretch-card">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-3 py-md-4">
+          <h4 class="mb-1 font-weight-bold text-warning" style="font-size: 1.5rem;">
+            {{ out_of_stock_count }}
+          </h4>
+          <p class="mb-0 text-muted" style="font-size: 0.8rem;">Out of Stock</p>
         </div>
       </div>
     </div>
-    <div class="col-md-3 grid-margin stretch-card">
-      <div class="card">
-        <div class="card-body text-center py-4">
-          <h4 class="mb-1 text-white">{{ total_invoices }}</h4>
-          <p class="mb-0 text-muted">Documents</p>
-          <small class="text-muted">{{ invoice_count }} Inv · {{ proforma_count }} Prof</small>
+
+    <div class="col-6 col-md-3 grid-margin stretch-card">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-3 py-md-4">
+          <h4 class="mb-1 font-weight-bold text-primary" style="font-size: 1.5rem;">
+            {{ total_invoices }}
+          </h4>
+          <p class="mb-0 text-muted" style="font-size: 0.8rem;">Documents</p>
+          <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">
+            {{ invoice_count }} Inv Â· {{ proforma_count }} Prof
+          </small>
         </div>
       </div>
     </div>
-    <div class="col-md-3 grid-margin stretch-card">
-      <div class="card">
-        <div class="card-body text-center py-4">
-          <h4 class="mb-1 text-white">{{ total_orders }}</h4>
-          <p class="mb-0 text-muted">Supplier Orders</p>
-          <small class="text-muted">{{ draft_orders }} Draft · {{ sent_orders }} Sent</small>
+
+    <div class="col-6 col-md-3 grid-margin stretch-card">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-3 py-md-4">
+          <h4 class="mb-1 font-weight-bold text-info" style="font-size: 1.5rem;">
+            {{ total_orders }}
+          </h4>
+          <p class="mb-0 text-muted" style="font-size: 0.8rem;">Supplier Orders</p>
+          <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">
+            {{ draft_orders }} Draft Â· {{ sent_orders }} Sent
+          </small>
         </div>
       </div>
     </div>
   </div>
 
   <!-- ========== CHARTS ========== -->
-<div class="row">
-  <!-- Sales Trend -->
-  <div class="col-lg-8 grid-margin stretch-card">
-    <div class="card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h4 class="card-title mb-0">Sales Trend</h4>
-          <small class="text-muted">{{ period_label }}</small>
+  <div class="row">
+    <!-- Sales Trend -->
+    <div class="col-lg-8 grid-margin stretch-card">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0" style="font-size: 1.05rem; font-weight: 600;">Sales Trend</h5>
+            <small class="text-muted">{{ period_label }}</small>
+          </div>
+          <div style="position: relative; height: 260px;">
+            <canvas id="salesTrendChart"></canvas>
+          </div>
         </div>
-        <div style="position: relative; height: 280px;">
-          <canvas id="salesTrendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Stock Status -->
+    <div class="col-lg-4 grid-margin stretch-card">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3" style="font-size: 1.05rem; font-weight: 600;">Stock Status</h5>
+          <div style="position: relative; height: 260px;">
+            <canvas id="stockStatusChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Stock Status -->
-  <div class="col-lg-4 grid-margin stretch-card">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Stock Status</h4>
-        <div style="position: relative; height: 280px;">
-          <canvas id="stockStatusChart"></canvas>
+  <div class="row">
+    <!-- Top Products -->
+    <div class="col-lg-6 grid-margin stretch-card">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3" style="font-size: 1.05rem; font-weight: 600;">Top Products (Qty Sold)</h5>
+          <div style="position: relative; height: 260px;">
+            <canvas id="topProductsChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<div class="row">
-  <!-- Top Products -->
-  <div class="col-lg-6 grid-margin stretch-card">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Top Products (Qty Sold)</h4>
-        <div style="position: relative; height: 280px;">
-          <canvas id="topProductsChart"></canvas>
+    <!-- Customer Types -->
+    <div class="col-lg-3 col-md-6 grid-margin stretch-card">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3" style="font-size: 1.05rem; font-weight: 600;">Customers</h5>
+          <div style="position: relative; height: 260px;">
+            <canvas id="customerTypeChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Customer Types -->
-  <div class="col-lg-3 grid-margin stretch-card">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Customers</h4>
-        <div style="position: relative; height: 280px;">
-          <canvas id="customerTypeChart"></canvas>
+    <!-- Documents -->
+    <div class="col-lg-3 col-md-6 grid-margin stretch-card">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3" style="font-size: 1.05rem; font-weight: 600;">Documents</h5>
+          <div style="position: relative; height: 260px;">
+            <canvas id="invoiceTypeChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Documents -->
-  <div class="col-lg-3 grid-margin stretch-card">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Documents</h4>
-        <div style="position: relative; height: 280px;">
-          <canvas id="invoiceTypeChart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
   <!-- ========== LISTS ========== -->
   <div class="row">
-    <!-- Low Stock -->
+    <!-- Low Stock Alerts -->
     <div class="col-lg-4 grid-margin stretch-card">
-      <div class="card">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="card-title mb-0">Low Stock Alerts</h4>
+            <h5 class="card-title mb-0" style="font-size: 1.05rem; font-weight: 600;">Low Stock Alerts</h5>
             <a href="{% url 'stock_levels' %}?low_stock=1" class="btn btn-sm btn-outline-danger">View All</a>
           </div>
+
           {% if low_stock_list %}
             <div class="table-responsive">
-              <table class="table table-sm table-hover">
+              <table class="table table-sm table-hover mb-0">
                 <thead>
                   <tr>
-                    <th>Product</th>
-                    <th class="text-right">Qty</th>
+                    <th style="font-size: 0.8rem;">Product</th>
+                    <th class="text-right" style="font-size: 0.8rem;">Qty</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for item in low_stock_list %}
                   <tr>
-                    <td>
+                    <td style="font-size: 0.85rem;">
                       {{ item.name }}
-                      {% if item.store %}<br><small class="text-muted">{{ item.store }}</small>{% endif %}
+                      {% if item.store %}
+                        <br><small class="text-muted">{{ item.store }}</small>
+                      {% endif %}
                     </td>
-                    <td class="text-right">
+                    <td class="text-right" style="font-size: 0.85rem;">
                       <span class="badge badge-danger">{{ item.qty }}</span>
                       <small class="text-muted">/ {{ item.reorder }}</small>
                     </td>
@@ -239,7 +309,10 @@
               </table>
             </div>
           {% else %}
-            <p class="text-muted mb-0">No low stock items</p>
+            <div class="text-center py-4">
+              <i class="mdi mdi-check-circle-outline text-success" style="font-size: 2rem;"></i>
+              <p class="text-muted mb-0 mt-2" style="font-size: 0.9rem;">No low stock items</p>
+            </div>
           {% endif %}
         </div>
       </div>
@@ -247,35 +320,43 @@
 
     <!-- Recent Sales -->
     <div class="col-lg-4 grid-margin stretch-card">
-      <div class="card">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="card-title mb-0">Recent Sales</h4>
+            <h5 class="card-title mb-0" style="font-size: 1.05rem; font-weight: 600;">Recent Sales</h5>
             <a href="{% url 'sales_history' %}" class="btn btn-sm btn-outline-primary">View All</a>
           </div>
+
           {% if recent_sales %}
             <div class="table-responsive">
-              <table class="table table-sm">
+              <table class="table table-sm table-hover mb-0">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Date</th>
-                    <th class="text-right">Amount</th>
+                    <th style="font-size: 0.8rem;">#</th>
+                    <th style="font-size: 0.8rem;">Date</th>
+                    <th class="text-right" style="font-size: 0.8rem;">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for sale in recent_sales %}
                   <tr>
-                    <td><a href="{% url 'sale_detail' sale.id %}">#{{ sale.id }}</a></td>
-                    <td>{{ sale.sale_date|date:"d M" }}</td>
-                    <td class="text-right">{{ sale.total_amount|floatformat:0|intcomma }}</td>
+                    <td style="font-size: 0.85rem;">
+                      <a href="{% url 'sale_detail' sale.id %}">#{{ sale.id }}</a>
+                    </td>
+                    <td style="font-size: 0.85rem;">{{ sale.sale_date|date:"d M" }}</td>
+                    <td class="text-right font-weight-medium" style="font-size: 0.85rem;">
+                      {{ sale.total_amount|floatformat:0|intcomma }}
+                    </td>
                   </tr>
                   {% endfor %}
                 </tbody>
               </table>
             </div>
           {% else %}
-            <p class="text-muted mb-0">No sales yet</p>
+            <div class="text-center py-4">
+              <i class="mdi mdi-cart-outline text-muted" style="font-size: 2rem;"></i>
+              <p class="text-muted mb-0 mt-2" style="font-size: 0.9rem;">No sales yet</p>
+            </div>
           {% endif %}
         </div>
       </div>
@@ -283,35 +364,45 @@
 
     <!-- Recent Documents -->
     <div class="col-lg-4 grid-margin stretch-card">
-      <div class="card">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="card-title mb-0">Recent Documents</h4>
+            <h5 class="card-title mb-0" style="font-size: 1.05rem; font-weight: 600;">Recent Documents</h5>
             <a href="{% url 'invoices:invoice_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
           </div>
+
           {% if recent_invoices %}
             <div class="table-responsive">
-              <table class="table table-sm">
+              <table class="table table-sm table-hover mb-0">
                 <thead>
                   <tr>
-                    <th>Number</th>
-                    <th>Type</th>
-                    <th class="text-right">Date</th>
+                    <th style="font-size: 0.8rem;">Number</th>
+                    <th style="font-size: 0.8rem;">Type</th>
+                    <th class="text-right" style="font-size: 0.8rem;">Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for inv in recent_invoices %}
                   <tr>
-                    <td><a href="{% url 'invoices:invoice_detail' inv.pk %}">{{ inv.number }}</a></td>
-                    <td><span class="badge badge-primary">{{ inv.doc_type|title }}</span></td>
-                    <td class="text-right">{{ inv.issue_date|date:"d M" }}</td>
+                    <td style="font-size: 0.85rem;">
+                      <a href="{% url 'invoices:invoice_detail' inv.pk %}">{{ inv.number }}</a>
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                      <span class="badge badge-primary">{{ inv.doc_type|title }}</span>
+                    </td>
+                    <td class="text-right" style="font-size: 0.85rem;">
+                      {{ inv.issue_date|date:"d M" }}
+                    </td>
                   </tr>
                   {% endfor %}
                 </tbody>
               </table>
             </div>
           {% else %}
-            <p class="text-muted mb-0">No documents yet</p>
+            <div class="text-center py-4">
+              <i class="mdi mdi-file-document-outline text-muted" style="font-size: 2rem;"></i>
+              <p class="text-muted mb-0 mt-2" style="font-size: 0.9rem;">No documents yet</p>
+            </div>
           {% endif %}
         </div>
       </div>
@@ -321,7 +412,7 @@
   {% endif %}
 </div>
 
-<!-- Chart Data -->
+<!-- ========== CHART DATA ========== -->
 <script type="application/json" id="sales-labels-data">{{ sales_labels|safe }}</script>
 <script type="application/json" id="sales-data-data">{{ sales_data|safe }}</script>
 
@@ -352,7 +443,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // ========== Line/Bar Options (sample style) ==========
   var lineBarOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -360,64 +450,68 @@ document.addEventListener('DOMContentLoaded', function () {
     elements: { point: { radius: 0 } },
     scales: {
       yAxes: [{
-        ticks: { beginAtZero: true },
+        ticks: { beginAtZero: true, fontSize: 11 },
         gridLines: { color: "rgba(204, 204, 204, 0.1)" }
       }],
       xAxes: [{
+        ticks: { fontSize: 11 },
         gridLines: { color: "rgba(204, 204, 204, 0.1)" }
       }]
     }
   };
 
-  // ========== Doughnut/Pie Options (sample style) ==========
   var doughnutPieOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    legend: {
+      position: 'bottom',
+      labels: { fontSize: 11, padding: 12 }
+    },
     animation: { animateScale: true, animateRotate: true }
   };
 
-  // ========== Colour palette helpers ==========
   var baseColors = [
-    'rgba(88, 124, 228, ',   // primary blue
-    'rgba(40, 167, 69, ',    // success green
-    'rgba(220, 53, 69, ',    // danger red
-    'rgba(255, 193, 7, ',    // warning yellow
-    'rgba(23, 162, 184, ',   // info teal
-    'rgba(153, 102, 255, ',  // purple
+    'rgba(88, 124, 228, ',
+    'rgba(40, 167, 69, ',
+    'rgba(220, 53, 69, ',
+    'rgba(255, 193, 7, ',
+    'rgba(23, 162, 184, ',
+    'rgba(153, 102, 255, ',
   ];
 
-  function bgColor(i)   { return baseColors[i % baseColors.length] + '0.5)'; }
+  function bgColor(i)   { return baseColors[i % baseColors.length] + '0.65)'; }
   function borderColor(i) { return baseColors[i % baseColors.length] + '1)'; }
 
   function makePalette(count) {
     var bg = [], bd = [];
-    for (var i = 0; i < count; i++) { bg.push(bgColor(i)); bd.push(borderColor(i)); }
+    for (var i = 0; i < count; i++) {
+      bg.push(bgColor(i));
+      bd.push(borderColor(i));
+    }
     return { bg: bg, bd: bd };
   }
 
-  // ========== 1. Sales Trend (Line — sample style) ==========
+  // 1. Sales Trend
   if ($("#salesTrendChart").length) {
-    var salesLabels = getData('sales-labels-data', []);
-    var salesData   = getData('sales-data-data', []);
-
     new Chart($("#salesTrendChart").get(0).getContext("2d"), {
       type: 'line',
       data: {
-        labels: salesLabels,
+        labels: getData('sales-labels-data', []),
         datasets: [{
           label: 'Sales',
-          data: salesData,
+          data: getData('sales-data-data', []),
           borderColor: 'rgba(88, 124, 228, 1)',
-          backgroundColor: 'rgb(139, 139, 138)',
-          borderWidth: 2,
-          fill: true
+          backgroundColor: 'rgba(88, 124, 228, 0.12)',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.3
         }]
       },
       options: lineBarOptions
     });
   }
 
-  // ========== 2. Stock Status (Doughnut — sample style) ==========
+  // 2. Stock Status
   if ($("#stockStatusChart").length) {
     var pal = makePalette(3);
     new Chart($("#stockStatusChart").get(0).getContext("2d"), {
@@ -435,16 +529,15 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ========== 3. Top Products (Bar — sample style, per-bar colours) ==========
+  // 3. Top Products
   if ($("#topProductsChart").length) {
-    var topLabels = getData('top-labels-data', []);
-    var topData   = getData('top-data-data', []);
-    var barPal    = makePalette(topData.length);
+    var topData = getData('top-data-data', []);
+    var barPal = makePalette(topData.length);
 
     new Chart($("#topProductsChart").get(0).getContext("2d"), {
       type: 'bar',
       data: {
-        labels: topLabels,
+        labels: getData('top-labels-data', []),
         datasets: [{
           label: 'Qty Sold',
           data: topData,
@@ -459,10 +552,11 @@ document.addEventListener('DOMContentLoaded', function () {
         legend: { display: false },
         scales: {
           yAxes: [{
-            ticks: { beginAtZero: true },
+            ticks: { beginAtZero: true, fontSize: 11 },
             gridLines: { color: "rgba(204, 204, 204, 0.1)" }
           }],
           xAxes: [{
+            ticks: { fontSize: 10 },
             gridLines: { display: false }
           }]
         }
@@ -470,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ========== 4. Customer Types (Doughnut — sample style) ==========
+  // 4. Customer Types
   if ($("#customerTypeChart").length) {
     var custPal = makePalette(4);
     new Chart($("#customerTypeChart").get(0).getContext("2d"), {
@@ -488,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ========== 5. Documents (Pie — sample style) ==========
+  // 5. Documents
   if ($("#invoiceTypeChart").length) {
     var invPal = makePalette(3);
     new Chart($("#invoiceTypeChart").get(0).getContext("2d"), {
@@ -505,7 +599,6 @@ document.addEventListener('DOMContentLoaded', function () {
       options: doughnutPieOptions
     });
   }
-
 });
 </script>
 {% endblock %}

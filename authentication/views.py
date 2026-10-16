@@ -8,37 +8,6 @@ from django.contrib.auth.decorators import login_required
 from .forms import CustomUserCreationForm, CustomLoginForm
 
 
-def register(request):
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.role = form.cleaned_data['role']
-            user.save()
-
-            try:
-                from notifications.services import notify_user_registered
-                result = notify_user_registered(user)
-                print("NOTIFY RESULT:", result)
-            except Exception as e:
-                import traceback
-                print("========== NOTIFY ERROR ==========")
-                print(e)
-                traceback.print_exc()
-                print("==================================")
-
-            messages.success(
-                request,
-                f"Account created successfully for {user.username}! You can now login."
-            )
-            return redirect('login')
-
-    else:
-        form = CustomUserCreationForm()
-
-    return render(request, 'register.html', {'form': form})
-
-
 class CustomLoginView(LoginView):
     template_name = 'login.html'
     form_class = CustomLoginForm

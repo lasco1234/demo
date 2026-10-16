@@ -38,6 +38,19 @@
                 {% include 'partials/_navbar.html' %}
                 <!-- partial -->
                 <div class="main-panel" style="background-color: rgb(239, 243, 243);">
+                    <!-- ========== GLOBAL MESSAGES ========== -->
+                    {% if messages %}
+                        <div class="container-fluid pt-3 px-4">
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <!-- ========== END MESSAGES ========== -->
+
                     {% block content %}
                     <!-- Put content inside -->
                     {% endblock %}

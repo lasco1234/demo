@@ -1,71 +1,77 @@
 from django.contrib import admin
-from .models import Product
-from .models import Sale
-from .models import SaleItem
 from django.utils.html import format_html
+from .models import Product, ProductImage, Sale, SaleItem, Stock, StockAdjustment, Store
 
 
+# ===================== PRODUCT IMAGE INLINE =====================
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 1
+    fields = ('image', 'is_primary', 'uploaded_at')
+    readonly_fields = ('uploaded_at',)
+
+
+# ===================== PRODUCT ADMIN =====================
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
 
-    # Columns shown in admin list
     list_display = (
         'image_preview',
         'product_name',
+        'sku',
         'category',
-        'sell_price',
         'buy_price',
+        'sell_price',
+        'wholesale_price',
         'initial_stock',
         'unit_type',
+        'store',
         'created_at',
         'is_deleted',
     )
 
-    # Search box
     search_fields = (
         'product_name',
+        'sku',
+        'product_group',
+        'variant',
         'category',
-        'manufacturer',
+        'description',
     )
 
-    # Right-side filters
     list_filter = (
         'category',
         'unit_type',
-        'tax_type',
-        'discount_type',
+        'store',
         'is_deleted',
         'created_at',
     )
 
-    # Default ordering
     ordering = ('-created_at',)
-
-    # Clickable link
     list_display_links = ('product_name',)
+    list_per_page = 25
 
-    # Records per page
-    list_per_page = 20
-
-    # Read-only fields
     readonly_fields = (
         'created_at',
         'updated_at',
         'deleted_at',
     )
 
-    # Organize form into sections
-    fieldsets = (
+    inlines = [ProductImageInline]
 
+    fieldsets = (
         ('Basic Information', {
             'fields': (
+                'store',
                 'product_name',
+                'sku',
                 'category',
+                'product_group',
+                'variant',
                 'description',
                 'product_image',
             )
         }),
-
         ('Pricing', {
             'fields': (
                 'buy_price',
@@ -73,41 +79,13 @@ class ProductAdmin(admin.ModelAdmin):
                 'wholesale_price',
             )
         }),
-
         ('Stock Management', {
             'fields': (
                 'initial_stock',
-                'reorder_level',
-                'low_stock_alert_quantity',
                 'unit_type',
+                'low_stock_alert_quantity',
             )
         }),
-
-        ('Tax & Discount', {
-            'fields': (
-                'tax_type',
-                'tax_amount',
-                'discount_type',
-                'discount_value',
-            )
-        }),
-
-        ('Manufacturer & Warranty', {
-            'fields': (
-                'has_manufacturer',
-                'manufacturer',
-                'has_warranty',
-                'warranty_details',
-            )
-        }),
-
-        ('Expiry', {
-            'fields': (
-                'has_expiry_date',
-                'expiry_date',
-            )
-        }),
-
         ('System Information', {
             'classes': ('collapse',),
             'fields': (
@@ -122,7 +100,7 @@ class ProductAdmin(admin.ModelAdmin):
     def image_preview(self, obj):
         if obj.product_image:
             return format_html(
-                '<img src="{}" width="50" height="50" style="border-radius:5px;" />',
+                '<img src="{}" width="50" height="50" style="border-radius:5px; object-fit:cover;" />',
                 obj.product_image.url
             )
         return "No Image"
@@ -130,7 +108,26 @@ class ProductAdmin(admin.ModelAdmin):
     image_preview.short_description = "Image"
 
 
+# ===================== PRODUCT IMAGE ADMIN =====================
+@admin.register(ProductImage)
+class ProductImageAdmin(admin.ModelAdmin):
+    list_display = ('product', 'image_preview', 'is_primary', 'uploaded_at')
+    list_filter = ('is_primary', 'uploaded_at')
+    search_fields = ('product__product_name',)
+    readonly_fields = ('uploaded_at',)
 
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" width="60" height="60" style="border-radius:5px; object-fit:cover;" />',
+                obj.image.url
+            )
+        return "—"
+
+    image_preview.short_description = "Preview"
+
+
+# ===================== SALE ITEM INLINE =====================
 class SaleItemInline(admin.TabularInline):
     model = SaleItem
     extra = 0
@@ -145,38 +142,37 @@ class SaleItemInline(admin.TabularInline):
     )
     can_delete = False
 
+
+# ===================== SALE ADMIN =====================
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
-
     list_display = (
         'id',
+        'store',
         'sale_date',
         'total_amount',
         'items_count',
     )
-
     list_filter = (
         'sale_date',
+        'store',
     )
-
     search_fields = (
         'id',
     )
-
     readonly_fields = (
         'sale_date',
         'total_amount',
         'items_count',
         'created_at',
     )
-
     inlines = [SaleItemInline]
-
     ordering = ('-sale_date',)
 
+
+# ===================== SALE ITEM ADMIN =====================
 @admin.register(SaleItem)
 class SaleItemAdmin(admin.ModelAdmin):
-
     list_display = (
         'sale',
         'product_name',
@@ -184,16 +180,13 @@ class SaleItemAdmin(admin.ModelAdmin):
         'sold_price',
         'subtotal',
     )
-
     list_filter = (
         'sale',
         'category',
     )
-
     search_fields = (
         'product_name',
     )
-
     readonly_fields = (
         'sale',
         'product',
@@ -205,3 +198,46 @@ class SaleItemAdmin(admin.ModelAdmin):
         'subtotal',
         'original_sell_price',
     )
+
+
+# ===================== STORE ADMIN =====================
+@admin.register(Store)
+class StoreAdmin(admin.ModelAdmin):
+    list_display = ('name', 'location', 'phone', 'email', 'is_active', 'created_at')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'location', 'phone', 'email')
+    ordering = ('name',)
+
+
+# ===================== STOCK ADMIN =====================
+@admin.register(Stock)
+class StockAdmin(admin.ModelAdmin):
+    list_display = ('product', 'store', 'quantity', 'last_updated')
+    list_filter = ('store',)
+    search_fields = ('product__product_name', 'product__sku')
+    ordering = ('product',)
+
+
+# ===================== STOCK ADJUSTMENT ADMIN =====================
+@admin.register(StockAdjustment)
+class StockAdjustmentAdmin(admin.ModelAdmin):
+    list_display = (
+        'product',
+        'adjustment_type',
+        'quantity',
+        'from_store',
+        'to_store',
+        'unit_price',
+        'adjusted_by',
+        'adjustment_date',
+    )
+    list_filter = (
+        'adjustment_type',
+        'adjustment_date',
+    )
+    search_fields = (
+        'product__product_name',
+        'reason',
+    )
+    readonly_fields = ('adjustment_date',)
+    ordering = ('-adjustment_date',)

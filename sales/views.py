@@ -5,10 +5,16 @@ from django.db.models import Count, Sum, F, ExpressionWrapper, DecimalField
 from django.utils import timezone
 from datetime import timedelta, datetime
 from decimal import Decimal
-from store.models import Sale, SaleItem, SalesReturn
+from store.models import Sale, SaleItem, SalesReturn, Stock
 from reports.models import CashOut          # ← add this
 from .forms import SalesReturnForm         # adjust if needed
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.db import transaction
+from django.core.exceptions import PermissionDenied
+from core.models import FeatureAccess
+
 
 from notifications.utils import (
     check_stock_and_notify,
@@ -22,6 +28,11 @@ from notifications.utils import (
 
 @login_required
 def sales_history(request):
+    if not request.user.is_admin:
+        feature = FeatureAccess.objects.filter(key='sales_module').first()
+        if not feature or not feature.is_enabled_for_employer:
+            raise PermissionDenied("You don't have access to the Store module.")
+
     """Display sales for the current user's store with optional time filtering"""
 
     sales = Sale.objects.for_user(request.user).order_by('-sale_date')
@@ -162,15 +173,19 @@ def sales_history(request):
 def sale_detail(request, sale_id):
     """View details of a specific sale"""
     sale = get_object_or_404(
-        Sale.objects.for_user(request.user), 
+        Sale.objects.for_user(request.user),
         id=sale_id
     )
-    
-    items = sale.items.all()   # SaleItem related_name='items'
+
+    items = sale.items.all()
+
+    # Only allow editing/deleting if the sale was created today
+    can_edit = sale.sale_date.date() == timezone.localdate()
 
     context = {
         'sale': sale,
         'items': items,
+        'can_edit': can_edit,          # ← this was missing
     }
     return render(request, 'sale_detail.html', context)
 
@@ -280,6 +295,136 @@ def sales_return_detail(request, pk):
         ),
         pk=pk
     )
-    
+
     context = {'sales_return': sales_return}
     return render(request, 'sales_return/sales_return_detail.html', context)
+
+
+
+def _is_same_day(sale):
+    """Return True if the sale happened today (same calendar day)"""
+    return sale.sale_date.date() == timezone.localdate()
+
+
+@login_required
+@require_POST
+def update_sale_item_quantity(request, item_id):
+    """Update quantity of a sale item (only allowed on the same day)"""
+    try:
+        item = SaleItem.objects.select_related('sale', 'product', 'sale__store').get(id=item_id)
+        sale = item.sale
+
+        # Permission check
+        if not request.user.can_see_all and sale.store_id != request.user.store_id:
+            return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
+
+        # Only allow on the same day
+        if not _is_same_day(sale):
+            return JsonResponse({'status': 'error', 'message': 'Cannot edit sales from previous days'}, status=403)
+
+        data = json.loads(request.body)
+        new_qty = int(data.get('quantity', 0))
+
+        if new_qty < 1:
+            return JsonResponse({'status': 'error', 'message': 'Quantity must be at least 1'}, status=400)
+
+        old_qty = item.quantity
+        difference = new_qty - old_qty   # positive = more sold, negative = less sold
+
+        with transaction.atomic():
+            stock = Stock.objects.filter(product=item.product, store=sale.store).first()
+            if not stock:
+                return JsonResponse({'status': 'error', 'message': 'Stock record not found'}, status=400)
+
+            if difference > 0:
+                # Need more stock
+                if stock.quantity < difference:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Not enough stock. Available: {stock.quantity}'
+                    }, status=400)
+                stock.quantity -= difference
+            else:
+                # Returning stock
+                stock.quantity += abs(difference)
+
+            stock.save()
+
+            # Update sale item
+            item.quantity = new_qty
+            item.subtotal = item.sold_price * new_qty
+            item.save()
+
+            # Recalculate sale totals
+            items = sale.items.all()
+            sale.items_count = sum(i.quantity for i in items)
+            sale.total_amount = sum(i.subtotal for i in items)
+            sale.save()
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Quantity updated',
+            'new_subtotal': float(item.subtotal),
+            'new_total': float(sale.total_amount),
+            'new_items_count': sale.items_count,
+        })
+
+    except SaleItem.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def delete_sale_item(request, item_id):
+    """Delete a sale item and return stock (only allowed on the same day)"""
+    try:
+        item = SaleItem.objects.select_related('sale', 'product', 'sale__store').get(id=item_id)
+        sale = item.sale
+
+        # Permission check
+        if not request.user.can_see_all and sale.store_id != request.user.store_id:
+            return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
+
+        # Only allow on the same day
+        if not _is_same_day(sale):
+            return JsonResponse({'status': 'error', 'message': 'Cannot delete items from previous days'}, status=403)
+
+        with transaction.atomic():
+            # Return stock
+            stock = Stock.objects.filter(product=item.product, store=sale.store).first()
+            if stock:
+                stock.quantity += item.quantity
+                stock.save()
+
+            # Delete the item
+            item.delete()
+
+            # Recalculate sale totals
+            remaining_items = sale.items.all()
+            if remaining_items.exists():
+                sale.items_count = sum(i.quantity for i in remaining_items)
+                sale.total_amount = sum(i.subtotal for i in remaining_items)
+                sale.save()
+            else:
+                # No items left → delete the whole sale
+                sale.delete()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Item deleted. Sale had no remaining items and was removed.',
+                    'sale_deleted': True,
+                })
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Item deleted and stock returned',
+            'new_total': float(sale.total_amount),
+            'new_items_count': sale.items_count,
+            'sale_deleted': False,
+        })
+
+    except SaleItem.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

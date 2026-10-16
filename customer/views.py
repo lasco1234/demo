@@ -33,7 +33,6 @@ def add_customer(request):
         'company_customers': customers.filter(customer_type='Company').count(),
         'group_customers': customers.filter(customer_type='Group').count(),
         'individual_customers': customers.filter(customer_type='Individual').count(),
-        'school_customers': customers.filter(customer_type='School').count(),
     }
     return render(request, 'customer/add_customer.html', context)
 

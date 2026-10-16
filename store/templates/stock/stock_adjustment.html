@@ -68,13 +68,12 @@
                         </div>
                     </div>
 
-                    <!-- Unit Price (Buy Price) -->
-                    <div class="mb-4">
+                    <!-- Buy Price -->
+                    <div class="mb-3">
                         <label class="form-label text-white">
-                            Unit Price <small>(Buy Price)</small>
+                            Buy Price <small>(Unit Cost)</small>
                         </label>
 
-                        <!-- Current Buy Price Display -->
                         <div class="mb-2">
                             <small class="text-white-50">Current Buy Price:</small>
                             <span id="current-buy-price" class="fw-bold text-warning ms-1">—</span>
@@ -87,9 +86,31 @@
                                min="0"
                                placeholder="Enter new buy price if changed"
                                style="background-color: #e7ebeb; color: black;">
-
                         <small class="text-white-50">
-                            Leave as is if price didn’t change, or enter the new market price
+                            Leave blank to keep current price
+                        </small>
+                    </div>
+
+                    <!-- Sell Price -->
+                    <div class="mb-4" id="sell-price-section">
+                        <label class="form-label text-white">
+                            Sell Price
+                        </label>
+
+                        <div class="mb-2">
+                            <small class="text-white-50">Current Sell Price:</small>
+                            <span id="current-sell-price" class="fw-bold text-warning ms-1">—</span>
+                        </div>
+
+                        <input type="number"
+                               class="form-control"
+                               id="sell-price-input"
+                               step="0.01"
+                               min="0"
+                               placeholder="Enter new sell price if changed"
+                               style="background-color: #e7ebeb; color: black;">
+                        <small class="text-white-50">
+                            Leave blank to keep current price
                         </small>
                     </div>
 
@@ -128,7 +149,8 @@
                                     <th>STORE</th>
                                     <th>QTY</th>
                                     <th>UNIT</th>
-                                    <th>PRICE</th>
+                                    <th>BUY PRICE</th>
+                                    <th>SELL PRICE</th>
                                     <th>TYPE</th>
                                     <th class="text-end">ACTION</th>
                                 </tr>
@@ -196,7 +218,8 @@ function filterProducts(searchTerm = '') {
             p.display_name.toLowerCase().includes(q) ||
             p.product_name.toLowerCase().includes(q) ||
             (p.product_group && p.product_group.toLowerCase().includes(q)) ||
-            (p.variant && p.variant.toLowerCase().includes(q))
+            (p.variant && p.variant.toLowerCase().includes(q)) ||
+            (p.sku && p.sku.toLowerCase().includes(q))
         );
     }
 
@@ -210,16 +233,19 @@ function selectProduct(p) {
     document.getElementById('selected-product-id').value = p.id;
     document.getElementById('unit-display').value = p.unit_type || '';
 
-    // Safely handle buy_price
+    // Buy Price
     const buyPrice = parseFloat(p.buy_price);
     const safeBuyPrice = isNaN(buyPrice) ? 0 : buyPrice;
-
-    // Show current buy price
     document.getElementById('current-buy-price').textContent =
         "Tsh " + safeBuyPrice.toLocaleString();
+    document.getElementById('price-input').value = safeBuyPrice > 0 ? safeBuyPrice.toFixed(2) : '';
 
-    // Prefill editable field
-    document.getElementById('price-input').value = safeBuyPrice.toFixed(2);
+    // Sell Price
+    const sellPrice = parseFloat(p.sell_price);
+    const safeSellPrice = isNaN(sellPrice) ? 0 : sellPrice;
+    document.getElementById('current-sell-price').textContent =
+        "Tsh " + safeSellPrice.toLocaleString();
+    document.getElementById('sell-price-input').value = safeSellPrice > 0 ? safeSellPrice.toFixed(2) : '';
 
     document.getElementById('product-dropdown').style.display = 'none';
 }
@@ -243,12 +269,15 @@ function renderDropdown() {
         item.className = 'dropdown-item px-3 py-2';
         item.style.cursor = 'pointer';
         item.innerHTML = `
-            <div class="fw-semibold">${p.display_name}</div>
-            <small class="text-muted">${p.unit_type || '-'} • Buy: Tsh ${safeBuyPrice.toLocaleString()}</small>
+            <div class="fw-semibold text-white">${p.display_name}</div>
+            <small class="text-muted">
+                ${p.unit_type || '-'} • Buy: Tsh ${safeBuyPrice.toLocaleString()}
+                ${p.sku ? ' • SKU: ' + p.sku : ''}
+            </small>
         `;
 
         item.addEventListener('click', () => selectProduct(p));
-        item.addEventListener('mouseenter', () => item.style.backgroundColor = '#f1f3f5');
+        item.addEventListener('mouseenter', () => item.style.backgroundColor = '#3a3f44');
         item.addEventListener('mouseleave', () => item.style.backgroundColor = '');
 
         dropdown.appendChild(item);
@@ -286,8 +315,10 @@ document.addEventListener('click', function (e) {
 function clearProductFields() {
     document.getElementById('unit-display').value = '';
     document.getElementById('price-input').value = '';
+    document.getElementById('sell-price-input').value = '';
     document.getElementById('quantity-input').value = '';
     document.getElementById('current-buy-price').textContent = '—';
+    document.getElementById('current-sell-price').textContent = '—';
 }
 
 function clearForm() {
@@ -310,9 +341,14 @@ function addToQueue() {
     const product = allProducts.find(p => p.id == productId);
     if (!product) return alert('Product not found');
 
-    let price = parseFloat(document.getElementById('price-input').value);
-    if (isNaN(price)) {
-        price = parseFloat(product.buy_price) || 0;
+    let buyPrice = parseFloat(document.getElementById('price-input').value);
+    if (isNaN(buyPrice)) {
+        buyPrice = parseFloat(product.buy_price) || 0;
+    }
+
+    let sellPrice = parseFloat(document.getElementById('sell-price-input').value);
+    if (isNaN(sellPrice)) {
+        sellPrice = parseFloat(product.sell_price) || 0;
     }
 
     const storeName = storeSelect.options[storeSelect.selectedIndex].text;
@@ -325,7 +361,8 @@ function addToQueue() {
         store_name: storeName,
         quantity: quantity,
         unit: product.unit_type || '-',
-        price: price,
+        price: buyPrice,          // buy price
+        sell_price: sellPrice,    // sell price
         type: currentType
     });
 
@@ -358,6 +395,7 @@ function renderQueue() {
             <td><span class="badge ${badgeClass}">${item.quantity}</span></td>
             <td>${item.unit}</td>
             <td>${parseFloat(item.price).toLocaleString()}</td>
+            <td>${parseFloat(item.sell_price).toLocaleString()}</td>
             <td><span class="badge bg-primary">${item.type.toUpperCase()}</span></td>
             <td class="text-end">
                 <button class="btn btn-sm btn-outline-danger" onclick="removeFromQueue(${item.id})">
@@ -390,7 +428,8 @@ async function saveAdjustments() {
         product_id: item.product_id,
         store_id: item.store_id,
         quantity: item.quantity,
-        price: item.price,
+        price: item.price,              // buy price
+        sell_price: item.sell_price,    // sell price
         type: item.type,
         reason: ''
     }));
@@ -424,24 +463,38 @@ async function saveAdjustments() {
 function switchTab(type) {
     currentType = type;
 
-    // Make the unit price read-only when decreasing stock
     const priceInput = document.getElementById('price-input');
+    const sellPriceInput = document.getElementById('sell-price-input');
+    const sellPriceSection = document.getElementById('sell-price-section');
+
     if (type === 'decrease') {
+        // On decrease → prices become read-only
         priceInput.readOnly = true;
-        priceInput.style.backgroundColor = '#e9ecef';  // greyed out
+        priceInput.style.backgroundColor = '#e9ecef';
         priceInput.style.color = '#6c757d';
+
+        sellPriceInput.readOnly = true;
+        sellPriceInput.style.backgroundColor = '#e9ecef';
+        sellPriceInput.style.color = '#6c757d';
     } else {
+        // On increase → prices are editable
         priceInput.readOnly = false;
-        priceInput.style.backgroundColor = '#e7ebeb';  // back to normal
+        priceInput.style.backgroundColor = '#e7ebeb';
         priceInput.style.color = 'black';
+
+        sellPriceInput.readOnly = false;
+        sellPriceInput.style.backgroundColor = '#e7ebeb';
+        sellPriceInput.style.color = 'black';
     }
 
+    // Update tab buttons
     document.querySelectorAll('.btn-group button').forEach(btn => {
         btn.classList.remove('active', 'btn-primary');
         btn.classList.add('btn-outline-primary');
     });
     document.getElementById(type + '-tab').classList.add('active', 'btn-primary');
 
+    // Update titles
     const title = document.getElementById('page-title');
     const subtitle = document.getElementById('page-subtitle');
 

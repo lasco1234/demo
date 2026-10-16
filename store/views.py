@@ -35,6 +35,8 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from io import BytesIO
 from datetime import datetime
+from django.core.exceptions import PermissionDenied
+from core.models import FeatureAccess
 
 
 @login_required
@@ -43,6 +45,11 @@ def store_home(request):
     Main dashboard for the Store app.
     Shows different data depending on whether the user is Admin or store user.
     """
+    if not request.user.is_admin:
+            feature = FeatureAccess.objects.filter(key='store_module').first()
+            if not feature or not feature.is_enabled_for_employer:
+                raise PermissionDenied("You don't have access to the Store module.")
+
     user = request.user
     is_admin = getattr(user, 'can_see_all', False) or user.is_superuser
 
@@ -53,7 +60,6 @@ def store_home(request):
         stocks = Stock.objects.all()
     else:
         if not user.store:
-            # Safety: user has no store assigned
             return render(request, 'store/dashboard.html', {
                 'error': 'You are not assigned to any store.'
             })
@@ -65,21 +71,25 @@ def store_home(request):
     total_products = products.filter(is_deleted=False).count()
     total_stores = stores.count()
 
-    # Current stock value (using sell_price)
+    # Current stock value (using buy_price)
     stock_value = stocks.aggregate(
         total=Sum(F('quantity') * F('product__buy_price'))
     )['total'] or 0
 
-    # Low stock products
+    # Low stock products (using low_stock_alert_quantity)
     low_stock_products = []
     for product in products.filter(is_deleted=False).select_related('store'):
         stock = stocks.filter(product=product).first()
         current_qty = stock.quantity if stock else product.initial_stock
-        if current_qty <= product.reorder_level:
+
+        # Use low_stock_alert_quantity instead of reorder_level
+        alert_level = product.low_stock_alert_quantity or 0
+
+        if current_qty <= alert_level:
             low_stock_products.append({
                 'product': product,
                 'current_stock': current_qty,
-                'reorder_level': product.reorder_level
+                'reorder_level': alert_level,   # keep the key name for template compatibility
             })
 
     low_stock_count = len(low_stock_products)
@@ -108,7 +118,7 @@ def store_home(request):
         'total_stores': total_stores,
         'stock_value': stock_value,
         'low_stock_count': low_stock_count,
-        'low_stock_products': low_stock_products[:8],  # show max 8
+        'low_stock_products': low_stock_products[:8],
         'recent_products_count': recent_products_count,
         'trash_count': trash_count,
         'recent_products': recent_products,
@@ -139,27 +149,30 @@ def product_list(request):
 
 # ===================== PRODUCT VIEWS =====================
 
+from .models import Product, ProductImage   # make sure ProductImage is imported
+
 @login_required
 def Add_product(request):
     if request.method == "POST":
-        # Pass user to the form
         form = ProductForm(request.POST, request.FILES, user=request.user)
 
         if form.is_valid():
             product = form.save(commit=False)
 
-            # Extra safety: Force store for normal users
             if not request.user.can_see_all and request.user.store:
                 product.store = request.user.store
 
             product.save()
 
-            # === NOTIFICATION ===
+            # Handle multiple extra images
+            extra_images = request.FILES.getlist('extra_images')
+            for img in extra_images:
+                ProductImage.objects.create(product=product, image=img)
+
             try:
                 notify_product_added(product, created_by=request.user)
             except Exception:
                 pass
-
 
             return JsonResponse({
                 "success": True,
@@ -173,21 +186,12 @@ def Add_product(request):
                 "errors": dict(form.errors.items())
             }, status=400)
 
-    # GET request
-    form = ProductForm(user=request.user)   # ← Important: Pass user
+    form = ProductForm(user=request.user)
     return render(request, 'products/add_product.html', {'form': form})
 
 
 @login_required
-def product_detail(request, id):
-    product = get_object_or_404(Product.objects.for_user(request.user), id=id)
-    return render(request, 'products/product_detail.html', {'product': product})
-
-
-@login_required
 def update_product(request, pk):
-    """Update product with proper store isolation"""
-    # Only allow editing products from user's store
     product = get_object_or_404(Product.objects.for_user(request.user), pk=pk)
 
     if request.method == "POST":
@@ -196,13 +200,16 @@ def update_product(request, pk):
         if form.is_valid():
             updated_product = form.save(commit=False)
 
-            # === CRITICAL FIX: Ensure store is assigned ===
             if not request.user.can_see_all and request.user.store:
                 updated_product.store = request.user.store
 
             updated_product.save()
 
-            # === NOTIFICATION ===
+            # Handle new extra images
+            extra_images = request.FILES.getlist('extra_images')
+            for img in extra_images:
+                ProductImage.objects.create(product=updated_product, image=img)
+
             try:
                 notify_product_updated(updated_product, updated_by=request.user)
             except Exception:
@@ -213,20 +220,24 @@ def update_product(request, pk):
                 "message": "Product updated successfully!"
             })
         else:
-            print("FORM ERRORS:", form.errors)          # ← add this
             return JsonResponse({
                 "success": False,
                 "errors": dict(form.errors.items())
             }, status=400)
 
     else:
-        # GET request
         form = ProductForm(instance=product, user=request.user)
 
     return render(request, 'products/update_product.html', {
         'form': form,
         'product': product
     })
+
+
+@login_required
+def product_detail(request, id):
+    product = get_object_or_404(Product.objects.for_user(request.user), id=id)
+    return render(request, 'products/product_detail.html', {'product': product})
 
 
 @login_required
@@ -494,55 +505,6 @@ def delete_store(request, pk):
 
 
 # ======================================================
-# Helper: Calculate Sell & Wholesale Price
-# ======================================================
-def calculate_prices(buy_price, category):
-    if buy_price is None or buy_price <= 0:
-        return Decimal('0'), Decimal('0')
-
-    buy = Decimal(str(buy_price))
-    category_name = (category or "").lower().strip()
-
-    # Accessories
-    if "accessor" in category_name:
-        sell = buy + (buy * Decimal('0.35'))
-        wholesale = buy + (buy * Decimal('0.20'))
-
-    # Laptop / Desktop
-    elif "laptop" in category_name or "desktop" in category_name:
-        if buy <= 399999:
-            sell = buy + Decimal('50000')
-        elif buy <= 499999:
-            sell = buy + Decimal('70000')
-        elif buy <= 699999:
-            sell = buy + Decimal('90000')
-        elif buy <= 999999:
-            sell = buy + Decimal('100000')
-        elif buy <= 1499999:
-            sell = buy + Decimal('150000')
-        elif buy <= 1999999:
-            sell = buy + Decimal('200000')
-        elif buy <= 2499999:
-            sell = buy + Decimal('250000')
-        elif buy <= 2999999:
-            sell = buy + Decimal('300000')
-        else:
-            sell = buy + (buy * Decimal('0.25'))
-
-        margin = sell - buy
-        wholesale = buy + (margin * Decimal('0.65'))
-
-    # Other categories
-    else:
-        sell = buy + (buy * Decimal('0.25'))
-        wholesale = buy + (buy * Decimal('0.15'))
-
-    sell = sell.quantize(Decimal('1'))
-    wholesale = wholesale.quantize(Decimal('1'))
-    return sell, wholesale
-
-
-# ======================================================
 # Stock Adjustment Page
 # ======================================================
 @login_required
@@ -585,6 +547,7 @@ def stock_adjustment(request):
             'display_name': display_name,
             'product_group': p.product_group or '',
             'variant': p.variant or '',
+            'sku': p.sku or '',
             'unit_type': p.unit_type or '',
             'buy_price': buy_price,
             'sell_price': sell_price,
@@ -745,44 +708,50 @@ def stock_levels(request):
     if search:
         stocks = stocks.filter(
             Q(product__product_name__icontains=search) |
-            Q(product__description__icontains=search)
+            Q(product__description__icontains=search) |
+            Q(product__sku__icontains=search) |
+            Q(product__product_group__icontains=search) |
+            Q(product__variant__icontains=search)
         )
         products_without_stock = products_without_stock.filter(
             Q(product_name__icontains=search) |
-            Q(description__icontains=search)
+            Q(description__icontains=search) |
+            Q(sku__icontains=search) |
+            Q(product_group__icontains=search) |
+            Q(variant__icontains=search)
         )
 
     if is_admin and store_id:
         stocks = stocks.filter(store_id=store_id)
         products_without_stock = products_without_stock.filter(store_id=store_id)
 
-    # Build a list of all items (products that have stock + products that don't)
+    # Build a list of all items
     stock_data = []
 
     # Products that already have a Stock record
     for stock in stocks:
         current_qty = stock.quantity
-        reorder = stock.product.reorder_level or 0
+        alert_level = stock.product.low_stock_alert_quantity or 0
         stock_data.append({
             'product': stock.product,
             'store': stock.store,
             'quantity': current_qty,
-            'reorder_level': reorder,
-            'is_low': current_qty <= reorder,
+            'reorder_level': alert_level,          # keep key name for template
+            'is_low': current_qty <= alert_level,
             'stock_id': stock.id,
         })
 
-    # Products that never had a Stock record yet (use initial_stock)
+    # Products that never had a Stock record yet
     existing_product_ids = stocks.values_list('product_id', flat=True)
     for product in products_without_stock.exclude(id__in=existing_product_ids):
         current_qty = product.initial_stock or 0
-        reorder = product.reorder_level or 0
+        alert_level = product.low_stock_alert_quantity or 0
         stock_data.append({
             'product': product,
             'store': product.store,
             'quantity': current_qty,
-            'reorder_level': reorder,
-            'is_low': current_qty <= reorder,
+            'reorder_level': alert_level,          # keep key name for template
+            'is_low': current_qty <= alert_level,
             'stock_id': None,
         })
 
@@ -807,13 +776,13 @@ def stock_levels(request):
     total_quantity = sum(item['quantity'] for item in stock_data)
 
     stock_value = stocks_qs.aggregate(
-            total=Sum(F('quantity') * F('product__buy_price'))
-        )['total'] or Decimal('0')
+        total=Sum(F('quantity') * F('product__buy_price'))
+    )['total'] or Decimal('0')
 
     context = {
         'page_obj': page_obj,
         'stock_value': stock_value,
-        'stock_data': page_obj,          # for easier template access
+        'stock_data': page_obj,
         'is_admin': is_admin,
         'stores': stores,
         'search': search,

@@ -18,8 +18,8 @@ from notifications.models import Notification   # ← import this
 from customer.models import Customer
 from store.models import Product, Stock, Sale, SaleItem, Store
 from invoices.models import Invoice
-from orders.models import SupplierOrder
 from reports.models import CashOut 
+
 
 @login_required(login_url='login')
 def home(request):
@@ -108,7 +108,7 @@ def dashboard_main(request):
         stocks_qs = Stock.objects.select_related('product')
         sales_qs = Sale.objects.all()
         invoices_qs = Invoice.objects.all()
-        orders_qs = SupplierOrder.objects.all()
+        cash_out_qs = CashOut.objects.all()
         current_store = None
     else:
         if not getattr(user, 'store', None):
@@ -122,12 +122,13 @@ def dashboard_main(request):
         stocks_qs = Stock.objects.filter(store=store).select_related('product')
         sales_qs = Sale.objects.filter(store=store)
         invoices_qs = Invoice.objects.filter(store=store)
-        orders_qs = SupplierOrder.objects.filter(store=store)
+        cash_out_qs = CashOut.objects.filter(store=store)   # adjust if CashOut has no store field
 
     # Apply date filter
     if start_date:
         sales_qs = sales_qs.filter(sale_date__date__gte=start_date, sale_date__date__lte=end_date)
         invoices_qs = invoices_qs.filter(issue_date__gte=start_date, issue_date__lte=end_date)
+        cash_out_qs = cash_out_qs.filter(date__gte=start_date, date__lte=end_date)  # change 'date' if your field is different
 
     # ===================== KPIs =====================
     total_customers = customers_qs.count()
@@ -137,17 +138,14 @@ def dashboard_main(request):
     school_customers = customers_qs.filter(customer_type='School').count()
 
     total_products = products_qs.count()
-    cash_out_qs = CashOut.objects.all()
 
     stock_value = stocks_qs.aggregate(
         total=Sum(F('quantity') * F('product__buy_price'))
     )['total'] or Decimal('0')
 
-    total_expenses = cash_out_qs.aggregate(
-            total=Sum('amount')
-        )['total'] or Decimal('0')
+    total_expenses = cash_out_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0')
 
-    # Stock status
+    # Stock status – now uses low_stock_alert_quantity
     low_stock_count = 0
     out_of_stock_count = 0
     in_stock_count = 0
@@ -155,17 +153,17 @@ def dashboard_main(request):
 
     for product in products_qs.select_related('store'):
         stock = stocks_qs.filter(product=product).first()
-        qty = stock.quantity if stock else (getattr(product, 'initial_stock', 0) or 0)
-        reorder = getattr(product, 'reorder_level', 0) or 0
+        qty = stock.quantity if stock else (product.initial_stock or 0)
+        alert_qty = product.low_stock_alert_quantity or 0
 
         if qty == 0:
             out_of_stock_count += 1
-        elif qty <= reorder:
+        elif qty <= alert_qty:
             low_stock_count += 1
             low_stock_list.append({
                 'name': product.product_name,
                 'qty': qty,
-                'reorder': reorder,
+                'reorder': alert_qty,          # still called 'reorder' in template for now
                 'store': product.store.name if is_admin else None
             })
         else:
@@ -190,23 +188,21 @@ def dashboard_main(request):
 
     total_sales = sales_agg['total_sales'] or Decimal('0')
     gross_profit = sales_agg['total_profit'] or Decimal('0')
-    total_expenses = cash_out_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0')
-
-    # Net profit = Gross profit − Expenses
     total_profit = gross_profit - total_expenses
 
     total_items_sold = sales_agg['total_items'] or 0
     total_sales_count = sales_qs.count()
+
     # Invoices
     total_invoices = invoices_qs.count()
     proforma_count = invoices_qs.filter(doc_type='proforma').count()
     invoice_count = invoices_qs.filter(doc_type='invoice').count()
     delivery_count = invoices_qs.filter(doc_type='delivery').count()
 
-    # Orders
-    total_orders = orders_qs.count()
-    draft_orders = orders_qs.filter(status='draft').count()
-    sent_orders = orders_qs.filter(status='sent').count()
+    # Orders – currently not available
+    total_orders = 0
+    draft_orders = 0
+    sent_orders = 0
 
     # ===================== CHART DATA =====================
     if period in ['7d', '30d']:
@@ -249,19 +245,15 @@ def dashboard_main(request):
     # Recent
     recent_sales = sales_qs.select_related('store').order_by('-sale_date')[:6]
     recent_invoices = invoices_qs.order_by('-issue_date')[:5]
-    recent_orders = orders_qs.order_by('-id')[:5]
 
-    # Add these two lines
     recent_notifications = Notification.objects.filter(
         user=request.user
-    ).order_by('-created_at')[:6]   # show latest 6
+    ).order_by('-created_at')[:6]
 
     unread_count = Notification.objects.filter(
-        user=request.user, 
+        user=request.user,
         is_read=False
     ).count()
-
-    
 
     context = {
         'is_admin': is_admin,
@@ -294,7 +286,7 @@ def dashboard_main(request):
         'low_stock_list': low_stock_list[:8],
         'recent_sales': recent_sales,
         'recent_invoices': recent_invoices,
-        'recent_orders': recent_orders,
+        # 'recent_orders': [],   # removed because not available
 
         # Chart data
         'sales_labels': json.dumps(sales_labels),

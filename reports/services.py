@@ -384,7 +384,7 @@ def generate_pdf_report(store, report_date):
     story = []
 
     story.append(Paragraph(
-        f"Daily Sales Report — {store.name} — {report_date.strftime('%d/%m/%Y (%A)')}",
+        f"Daily Sales Report singano & isihaka auto spare parts— {store.name} — {report_date.strftime('%d/%m/%Y (%A)')}",
         title_style
     ))
     story.append(Spacer(1, 6))

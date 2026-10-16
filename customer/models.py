@@ -6,7 +6,6 @@ class Customer(models.Model):
         ('Individual', 'Individual'),
         ('Company', 'Company'),
         ('Group', 'Group'),
-        ('School', 'School'),
     ]
     
     store = models.ForeignKey(
